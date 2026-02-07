@@ -1,0 +1,175 @@
+# panic-attacker JSON Output Schema
+
+Version: 1.0 (stable as of v1.0.0)
+
+## XRayReport
+
+```json
+{
+  "program_path": "string (path)",
+  "language": "string (rust|c|cpp|go|java|python|javascript|ruby|unknown)",
+  "frameworks": ["string (webserver|database|messagequeue|cache|filesystem|networking|concurrent|unknown)"],
+  "weak_points": [WeakPoint],
+  "statistics": ProgramStatistics,
+  "file_statistics": [FileStatistics],
+  "recommended_attacks": ["string (cpu|memory|disk|network|concurrency|time)"]
+}
+```
+
+## WeakPoint
+
+```json
+{
+  "category": "string (uncheckedallocation|unboundedloop|blockingio|unsafecode|panicpath|racecondition|deadlockpotential|resourceleak)",
+  "location": "string|null (file path)",
+  "severity": "string (low|medium|high|critical)",
+  "description": "string",
+  "recommended_attack": ["string (cpu|memory|disk|network|concurrency|time)"]
+}
+```
+
+## ProgramStatistics
+
+```json
+{
+  "total_lines": "number",
+  "unsafe_blocks": "number",
+  "panic_sites": "number",
+  "unwrap_calls": "number",
+  "allocation_sites": "number",
+  "io_operations": "number",
+  "threading_constructs": "number"
+}
+```
+
+## FileStatistics
+
+```json
+{
+  "file_path": "string",
+  "lines": "number",
+  "unsafe_blocks": "number",
+  "panic_sites": "number",
+  "unwrap_calls": "number",
+  "allocation_sites": "number",
+  "io_operations": "number",
+  "threading_constructs": "number"
+}
+```
+
+## AssaultReport
+
+```json
+{
+  "xray_report": XRayReport,
+  "attack_results": [AttackResult],
+  "total_crashes": "number",
+  "total_signatures": "number",
+  "overall_assessment": OverallAssessment
+}
+```
+
+## AttackResult
+
+```json
+{
+  "program": "string (path)",
+  "axis": "string (cpu|memory|disk|network|concurrency|time)",
+  "success": "boolean",
+  "exit_code": "number|null",
+  "duration": {"secs": "number", "nanos": "number"},
+  "peak_memory": "number (bytes)",
+  "crashes": [CrashReport],
+  "signatures_detected": [BugSignature]
+}
+```
+
+## CrashReport
+
+```json
+{
+  "timestamp": "string (RFC3339)",
+  "signal": "string|null",
+  "backtrace": "string|null",
+  "stderr": "string",
+  "stdout": "string"
+}
+```
+
+## BugSignature
+
+```json
+{
+  "signature_type": "string (useafterfree|doublefree|memoryleak|deadlock|datarace|bufferoverflow|integeroverflow|nullpointerderef|unhandlederror)",
+  "confidence": "number (0.0-1.0)",
+  "evidence": ["string"],
+  "location": "string|null"
+}
+```
+
+## OverallAssessment
+
+```json
+{
+  "robustness_score": "number (0.0-100.0)",
+  "critical_issues": ["string"],
+  "recommendations": ["string"]
+}
+```
+
+## Version Compatibility
+
+- **v0.1.0**: Initial schema (unstable)
+- **v0.2.0**: Added `file_statistics` field to XRayReport, all locations guaranteed non-null
+- **v1.0.0**: Schema stabilized, backwards-compatible changes only from here
+- **Future**: New fields may be added, but existing fields will not change type or be removed
+
+## Consuming the Schema
+
+### Python
+
+```python
+import json
+
+with open("xray-report.json") as f:
+    report = json.load(f)
+
+for wp in report["weak_points"]:
+    print(f"{wp['severity']}: {wp['description']} @ {wp['location']}")
+```
+
+### Rust
+
+```rust
+use panic_attacker::types::XRayReport;
+
+let json = std::fs::read_to_string("xray-report.json")?;
+let report: XRayReport = serde_json::from_str(&json)?;
+
+for wp in &report.weak_points {
+    println!("{:?}: {} @ {:?}", wp.severity, wp.description, wp.location);
+}
+```
+
+### JavaScript/TypeScript
+
+```typescript
+import * as fs from 'fs';
+
+const report = JSON.parse(fs.readFileSync('xray-report.json', 'utf8'));
+
+report.weak_points.forEach((wp: any) => {
+  console.log(`${wp.severity}: ${wp.description} @ ${wp.location}`);
+});
+```
+
+## Breaking Changes Policy
+
+Starting with v1.0.0:
+- **MAJOR version**: Breaking changes to schema (removed fields, changed types)
+- **MINOR version**: Backwards-compatible additions (new fields, new enum values)
+- **PATCH version**: No schema changes
+
+## SPDX License
+
+SPDX-License-Identifier: PMPL-1.0-or-later

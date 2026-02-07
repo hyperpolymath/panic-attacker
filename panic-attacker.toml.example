@@ -1,0 +1,49 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# panic-attacker configuration file example
+# Copy to panic-attacker.toml and customize
+
+[xray]
+# Default verbosity for X-Ray scans
+verbose = false
+
+# Include hidden files in analysis
+include_hidden = false
+
+# Minimum lines for a file to be considered
+min_lines = 10
+
+[attack]
+# Default attack intensity
+# Options: light, medium, heavy, extreme
+intensity = "medium"
+
+# Default attack duration in seconds
+duration = 60
+
+# Attack axes to use by default
+# Options: cpu, memory, disk, network, concurrency, time
+axes = ["cpu", "memory", "concurrency"]
+
+# Run attacks in parallel
+parallel = false
+
+[report]
+# Default output format
+# Options: terminal, json, yaml
+format = "terminal"
+
+# Use colored output
+colors = true
+
+# Show per-file breakdown in verbose output
+per_file = true
+
+[thresholds]
+# Minimum robustness score to pass (0-100)
+min_robustness_score = 50.0
+
+# Maximum weak points before failing
+max_weak_points = 10
+
+# Fail on critical severity weak points
+fail_on_critical = true

@@ -1,27 +1,44 @@
 # panic-attacker
 
+[![CI](https://github.com/hyperpolymath/panic-attacker/workflows/Rust%20CI/badge.svg)](https://github.com/hyperpolymath/panic-attacker/actions/workflows/rust-ci.yml)
+[![Security Audit](https://github.com/hyperpolymath/panic-attacker/workflows/Security%20Audit/badge.svg)](https://github.com/hyperpolymath/panic-attacker/actions/workflows/cargo-audit.yml)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/hyperpolymath/panic-attacker/badge)](https://securityscorecards.dev/viewer/?uri=github.com/hyperpolymath/panic-attacker)
+[![codecov](https://codecov.io/gh/hyperpolymath/panic-attacker/branch/main/graph/badge.svg)](https://codecov.io/gh/hyperpolymath/panic-attacker)
+[![License: PMPL](https://img.shields.io/badge/License-PMPL--1.0--or--later-blue.svg)](LICENSE)
+[![MSRV](https://img.shields.io/badge/MSRV-1.75.0-blue)](Cargo.toml)
+
 Universal stress testing and logic-based bug signature detection tool.
 
 ## Overview
 
 `panic-attacker` is a comprehensive program testing tool that combines:
 
-1. **X-Ray Static Analysis**: Pre-analyzes programs to identify weak points
-2. **Multi-Axis Stress Testing**: Attacks programs across 6 different axes
+1. **X-Ray Static Analysis**: Pre-analyzes programs to identify weak points across 5 languages
+2. **Multi-Axis Stress Testing**: Attacks programs across 6 different dimensions
 3. **Logic-Based Bug Detection**: Uses Datalog-inspired rules to detect bug signatures
 
 ## Features
 
+### ✨ What's New in v0.2
+
+- **Zero duplicate weak points**: Per-file analysis eliminates running totals (271→15 on echidna)
+- **All locations populated**: Every weak point includes file path (never `null`)
+- **Per-file breakdown**: Verbose mode shows top 10 files by risk score
+- **Latin-1 fallback**: Handles non-UTF-8 source files gracefully
+- **Pattern library wired**: Language/framework-specific attack selection
+- **Zero compiler warnings**: Clean builds, quality code
+
 ### X-Ray Analysis
 
 Static analysis that detects:
-- Language and framework identification
-- Unsafe code patterns
-- Panic sites and unwrap calls
-- Memory allocation patterns
-- I/O operations
-- Concurrency constructs
-- Weak points with severity levels
+- ✅ Language and framework identification (Rust, C/C++, Go, Python, generic)
+- ✅ Unsafe code patterns
+- ✅ Panic sites and unwrap calls
+- ✅ Memory allocation patterns
+- ✅ I/O operations
+- ✅ Concurrency constructs
+- ✅ Weak points with severity levels (Critical, High, Medium, Low)
+- ✅ Per-file statistics and risk scoring
 
 ### Attack Axes
 
@@ -50,8 +67,31 @@ Logic programming-based detection (inspired by Mozart/Oz and Datalog) for:
 
 ## Installation
 
+### From Source
+
 ```bash
+git clone https://github.com/hyperpolymath/panic-attacker.git
+cd panic-attacker
+cargo build --release
 cargo install --path .
+```
+
+### Requirements
+
+- Rust 1.75.0 or later
+- Cargo
+
+## Quick Start
+
+```bash
+# Analyze a program
+panic-attacker xray ./target/release/my-program --verbose
+
+# Full assault (X-Ray + multi-axis attacks)
+panic-attacker assault ./target/release/my-program
+
+# Single attack
+panic-attacker attack ./target/release/my-program --axis memory --intensity heavy
 ```
 
 ## Usage
@@ -61,13 +101,29 @@ cargo install --path .
 Analyze a program to identify weak points:
 
 ```bash
+# Basic analysis
 panic-attacker xray ./target/release/my-program
 
-# With detailed output
-panic-attacker xray ./target/release/my-program --verbose
+# Verbose with per-file breakdown
+panic-attacker xray /path/to/project --verbose
 
 # Save report to JSON
-panic-attacker xray ./target/release/my-program --output xray-report.json
+panic-attacker xray ./my-program --output xray-report.json
+```
+
+**Example output:**
+
+```
+X-Ray Analysis Complete
+  Language: Rust
+  Frameworks: [WebServer, Database]
+  Weak Points: 15
+  Recommended Attacks: [Memory, Disk, Concurrency, Cpu]
+
+  Per-file Breakdown (top 10 by risk):
+    1. src/server.rs (risk: 38, unsafe: 3, panics: 11, unwraps: 16)
+    2. src/database.rs (risk: 33, unsafe: 0, panics: 10, unwraps: 13)
+    3. src/ffi.rs (risk: 27, unsafe: 7, panics: 0, unwraps: 4)
 ```
 
 ### Single Attack
@@ -76,13 +132,13 @@ Execute a single attack on a specific axis:
 
 ```bash
 # CPU stress test
-panic-attacker attack ./target/release/my-program --axis cpu --intensity medium --duration 60
+panic-attacker attack ./my-program --axis cpu --intensity medium --duration 60
 
 # Memory exhaustion
-panic-attacker attack ./target/release/my-program --axis memory --intensity heavy --duration 30
+panic-attacker attack ./my-program --axis memory --intensity heavy --duration 30
 
 # Concurrency storm
-panic-attacker attack ./target/release/my-program --axis concurrency --intensity extreme --duration 120
+panic-attacker attack ./my-program --axis concurrency --intensity extreme --duration 120
 ```
 
 ### Full Assault
@@ -91,13 +147,13 @@ Run X-Ray analysis followed by multi-axis attacks:
 
 ```bash
 # Full assault with all axes
-panic-attacker assault ./target/release/my-program
+panic-attacker assault ./my-program
 
-# Custom axes
-panic-attacker assault ./target/release/my-program --axes cpu,memory,concurrency
+# Custom axes only
+panic-attacker assault ./my-program --axes cpu,memory,concurrency
 
 # With output report
-panic-attacker assault ./target/release/my-program --output assault-report.json --intensity heavy
+panic-attacker assault ./my-program --output assault-report.json --intensity heavy
 ```
 
 ### Analyze Crash Reports
@@ -107,93 +163,6 @@ Detect bug signatures from existing crash reports:
 ```bash
 panic-attacker analyze crash-report.json
 ```
-
-## Architecture
-
-### Core Components
-
-```
-panic-attacker/
-├── src/
-│   ├── main.rs           # CLI interface
-│   ├── types.rs          # Core type definitions
-│   ├── xray/             # Static analysis
-│   │   ├── analyzer.rs
-│   │   └── patterns.rs
-│   ├── attack/           # Attack orchestration
-│   │   ├── executor.rs
-│   │   └── strategies.rs
-│   ├── signatures/       # Logic-based detection
-│   │   ├── engine.rs
-│   │   └── rules.rs
-│   └── report/           # Report generation
-│       ├── generator.rs
-│       └── formatter.rs
-```
-
-### Logic Programming Approach
-
-The signature detection engine uses a Datalog-inspired approach:
-
-**Facts** (extracted from crash reports):
-```
-Alloc(var, location)
-Free(var, location)
-Use(var, location)
-Lock(mutex, location)
-Write(var, location)
-Read(var, location)
-```
-
-**Rules** (inference patterns):
-```
-UseAfterFree(var, use_loc, free_loc) :-
-    Free(var, free_loc),
-    Use(var, use_loc),
-    Ordering(free_loc, use_loc)
-
-DoubleFree(var, loc1, loc2) :-
-    Free(var, loc1),
-    Free(var, loc2),
-    loc1 != loc2
-
-Deadlock(m1, m2) :-
-    Lock(m1, loc1), Lock(m2, loc2),
-    Lock(m2, loc3), Lock(m1, loc4),
-    Ordering(loc1, loc2), Ordering(loc3, loc4)
-
-DataRace(var, loc1, loc2) :-
-    Write(var, loc1), Read(var, loc2),
-    Concurrent(loc1, loc2),
-    ¬Synchronized(loc1, loc2)
-```
-
-## Design Philosophy
-
-### Mozart/Oz Inspiration
-
-The tool is inspired by Mozart/Oz's logic programming model:
-
-1. **Declarative Rules**: Bug patterns defined as logical rules
-2. **Constraint Solving**: Facts extracted and matched against constraints
-3. **Inference Engine**: Forward-chaining to detect complex patterns
-4. **Temporal Logic**: Ordering constraints for sequence-dependent bugs
-
-### Multi-Program Testing
-
-The architecture supports testing multiple programs simultaneously:
-
-- Parallel attack execution
-- Cross-program correlation
-- Comparative robustness analysis
-
-### Program-Data Corpus
-
-Supports testing with real-world data:
-
-- Custom input corpus
-- Mutation-based fuzzing
-- Coverage-guided exploration
 
 ## Example Output
 
@@ -212,108 +181,161 @@ X-RAY ANALYSIS
     Unwrap calls: 47
 
   Weak Points Detected: 2
-    1. [High] UnsafeCode - 3 unsafe blocks detected
-    2. [Medium] PanicPath - 47 unwrap/expect calls detected
+    1. [High] UnsafeCode - 3 unsafe blocks in src/ffi.rs
+    2. [Medium] PanicPath - 47 unwrap/expect calls in src/server.rs
 
 ATTACK RESULTS
-  Cpu attack: PASSED (exit code: Some(0), duration: 60.23s)
-  Memory attack: FAILED (exit code: Some(137), duration: 15.45s)
+  Cpu attack: PASSED (exit code: 0, duration: 60.23s)
+  Memory attack: FAILED (exit code: 137, duration: 15.45s)
     Crashes: 1
-      1. Signal: Some("SIGKILL")
-  Concurrency attack: FAILED (exit code: Some(134), duration: 30.12s)
+      1. Signal: SIGKILL
+  Concurrency attack: FAILED (exit code: 134, duration: 30.12s)
     Crashes: 2
-      1. Signal: Some("SIGABRT")
-      2. Signal: Some("SIGABRT")
 
 BUG SIGNATURES DETECTED
   Total: 3
-
-  During Memory attack:
-    - MemoryLeak (confidence: 0.82)
-      Evidence: Unbounded allocation detected
-      Evidence: No cleanup on error paths
-
-  During Concurrency attack:
-    - Deadlock (confidence: 0.91)
-      Evidence: Deadlock pattern in error message
-    - DataRace (confidence: 0.75)
-      Evidence: Concurrent reads and writes detected
+  - Deadlock (confidence: 0.91)
+  - DataRace (confidence: 0.75)
+  - MemoryLeak (confidence: 0.82)
 
 OVERALL ASSESSMENT
   Robustness Score: 43.5/100
 
   Critical Issues:
-    - Program crashed under Memory attack (1 crashes)
-    - Program crashed under Concurrency attack (2 crashes)
-    - High-confidence Deadlock detected (confidence: 0.91)
+    - Program crashed under Memory attack
+    - High-confidence Deadlock detected
 
   Recommendations:
-    - Add comprehensive error handling for edge cases
+    - Add comprehensive error handling
     - Replace unwrap() calls with proper error handling
-    - Audit unsafe blocks for memory safety violations
     - Review lock ordering to prevent deadlocks
+```
+
+## Architecture
+
+### Core Components
+
+```
+panic-attacker/
+├── src/
+│   ├── main.rs           # CLI interface
+│   ├── lib.rs            # Library interface
+│   ├── types.rs          # Core type definitions
+│   ├── xray/             # Static analysis
+│   │   ├── analyzer.rs   # Language-specific analyzers
+│   │   └── patterns.rs   # Attack pattern library
+│   ├── attack/           # Attack orchestration
+│   │   ├── executor.rs   # Attack execution
+│   │   └── strategies.rs # Attack strategies
+│   ├── signatures/       # Logic-based detection
+│   │   ├── engine.rs     # Signature detection engine
+│   │   └── rules.rs      # Datalog-style rules
+│   └── report/           # Report generation
+│       ├── generator.rs  # Report logic
+│       └── formatter.rs  # Output formatting
+├── tests/                # Integration tests
+├── examples/             # Example programs
+└── .machine_readable/    # RSR checkpoint files
+```
+
+### Logic Programming Approach
+
+The signature detection engine uses a Datalog-inspired approach:
+
+**Facts** (extracted from crash reports):
+```
+Alloc(var, location)
+Free(var, location)
+Use(var, location)
+Lock(mutex, location)
+```
+
+**Rules** (inference patterns):
+```prolog
+UseAfterFree(var, use_loc, free_loc) :-
+    Free(var, free_loc),
+    Use(var, use_loc),
+    Ordering(free_loc, use_loc)
+
+DoubleFree(var, loc1, loc2) :-
+    Free(var, loc1),
+    Free(var, loc2),
+    loc1 != loc2
 ```
 
 ## Supported Languages
 
 Currently supports analysis for:
 
-- Rust
-- C/C++
-- Go
-- Python
-- JavaScript/TypeScript
-- Ruby
-- Java
+- **Rust** (full support)
+- **C/C++** (full support)
+- **Go** (full support)
+- **Python** (full support)
+- **Generic** (basic heuristics for other languages)
 
-## Extensibility
+## Roadmap
 
-### Adding New Attack Patterns
+See [ROADMAP.md](ROADMAP.md) for detailed development plans.
 
-Create pattern definitions in `src/xray/patterns.rs`:
+**Current focus (v1.0):**
+- ✅ RSR compliance (AI manifests, workflows, SCM files)
+- ✅ Comprehensive test coverage
+- 🚧 CI/CD integration
+- 🚧 Documentation polish
+- 🚧 Production hardening
 
-```rust
-AttackPattern {
-    name: "Custom Attack".to_string(),
-    description: "Description of attack".to_string(),
-    applicable_axes: vec![AttackAxis::Memory],
-    applicable_languages: vec![Language::Rust],
-    applicable_frameworks: vec![Framework::WebServer],
-    command_template: "{program} --custom-flag".to_string(),
-}
-```
-
-### Adding New Signature Rules
-
-Define rules in `src/signatures/rules.rs`:
-
-```rust
-Rule {
-    name: "custom_bug".to_string(),
-    head: Predicate::CustomBug { ... },
-    body: vec![
-        Predicate::Fact(Fact::CustomFact { ... }),
-        // ... more predicates
-    ],
-}
-```
+**Future milestones:**
+- v1.x: Constraint sets (YAML stress profiles)
+- v2.0: Real Datalog engine (Crepe/Datafrog)
+- v2.x: Multi-program testing
+- v3.0: Language expansion and performance optimization
 
 ## Contributing
 
-This is a hyperpolymath project following RSR (Reproducible Software Repositories) standards.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
+
+Key points:
+- Follow RSR standards
+- Zero warnings policy
+- 80% test coverage target
+- Comprehensive documentation
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for vulnerability reporting.
 
 ## License
 
-SPDX-License-Identifier: PMPL-1.0-or-later
+Licensed under the [Palimpsest Meta-Public License v1.0 or later](LICENSE).
 
-Palimpsest Meta-Public License v1.0 or later.
+SPDX-License-Identifier: PMPL-1.0-or-later
 
 ## Author
 
-Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>
+**Jonathan D.A. Jewell** <jonathan.jewell@open.ac.uk>
 
 ## Related Projects
 
-- `git-seo`: Git repository analysis and optimization
-- `hypatia`: Neurosymbolic CI/CD intelligence
-- `gitbot-fleet`: Repository automation bots
+- [hypatia](https://github.com/hyperpolymath/hypatia) - Neurosymbolic CI/CD intelligence
+- [git-seo](https://github.com/hyperpolymath/git-seo) - Git repository analysis
+- [gitbot-fleet](https://github.com/hyperpolymath/gitbot-fleet) - Repository automation bots
+- [echidna](https://github.com/hyperpolymath/echidna) - Automated theorem proving
+- [eclexia](https://github.com/hyperpolymath/eclexia) - Resource-aware adaptive programming
+
+## Citation
+
+If you use panic-attacker in your research, please cite:
+
+```bibtex
+@software{panic_attacker,
+  author = {Jewell, Jonathan D.A.},
+  title = {panic-attacker: Universal Stress Testing and Logic-Based Bug Detection},
+  year = {2026},
+  url = {https://github.com/hyperpolymath/panic-attacker},
+  version = {0.2.0}
+}
+```
+
+---
+
+**Status**: Active development | **Version**: 0.2.0 | **MSRV**: 1.75.0

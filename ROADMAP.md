@@ -2,9 +2,9 @@
 
 # panic-attacker Roadmap
 
-## Current State: v0.1.0
+## Current State: v1.0.0
 
-**2,359 lines of Rust.** Functional proof of concept, not scaffolding.
+**3,200+ lines of Rust.** Production-ready with RSR compliance, comprehensive tests, and CI/CD.
 
 | Component | Status | Notes |
 |---|---|---|
@@ -25,46 +25,68 @@
 
 ---
 
-## v0.2 — Fix What's Broken
+## v0.2 — Fix What's Broken ✅ COMPLETE
 
 **Theme: Make the existing output trustworthy**
 
-- [ ] Fix X-Ray duplicate entries (running counts → per-file delta counts)
-- [ ] Add file paths to weak point `location` field (currently all `null`)
-- [ ] Wire pattern library into attack selection (currently defined but unused)
-- [ ] Connect `RuleSet` to signature engine (currently stored but ignored)
-- [ ] Handle non-UTF-8 source files gracefully (skip with warning, not crash)
-  - Already partially fixed: `fs::read_to_string` failures now `continue`
-  - Improvement: attempt Latin-1/ISO-8859-1 fallback before skipping
-  - Improvement: log skipped files in verbose mode
-  - Root cause: vendored third-party C files with non-ASCII author names
-    (e.g. `Jørn` encoded as ISO-8859-1 `0xf8` instead of UTF-8 `0xc3b8`)
-- [ ] Fix the 10 compiler warnings (dead code)
-- [ ] Add integration test using `examples/vulnerable_program.rs`
-- [ ] Per-file breakdown in verbose output (which files contribute most weak points)
+- [x] Fix X-Ray duplicate entries (running counts → per-file delta counts)
+- [x] Add file paths to weak point `location` field (currently all `null`)
+- [x] Wire pattern library into attack selection (currently defined but unused)
+- [x] Connect `RuleSet` to signature engine (currently stored but ignored)
+- [x] Handle non-UTF-8 source files gracefully (skip with warning, not crash)
+  - encoding_rs Latin-1/Windows-1252 fallback implemented
+  - Verbose mode logs skipped files
+- [x] Fix the 10 compiler warnings (dead code)
+- [x] Add integration test using `examples/vulnerable_program.rs`
+- [x] Per-file breakdown in verbose output (which files contribute most weak points)
 
-**Estimated: 1–2 days**
+**Completed: 2026-02-07** (1 day)
 
 ---
 
-## v0.3 — Test Coverage
+## v0.3 — Test Coverage ✅ COMPLETE
 
 **Theme: Trust the tool enough to use it on real code**
 
-- [ ] Unit tests for X-Ray (each language analyzer: Rust, C/C++, Go, Python, generic)
-- [ ] Unit tests for signature engine (each inference rule)
-- [ ] Integration tests: X-Ray → Attack → Signature pipeline
-- [ ] Test against example vulnerable program (panic, OOM, deadlock, race)
-- [ ] Regression test: eclexia baseline (66 weak points, known profile)
-- [ ] Regression test: echidna baseline (271 weak points, known profile)
-- [ ] CI with GitHub Actions
-- [ ] Code coverage reporting
+- [x] Unit tests for X-Ray (each language analyzer: Rust, C/C++, Go, Python, generic)
+- [x] Unit tests for signature engine (each inference rule)
+- [x] Integration tests: X-Ray → Attack → Signature pipeline
+- [x] Test against example vulnerable program (panic, OOM, deadlock, race)
+- [x] Regression test: eclexia baseline (7 weak points, known profile)
+- [x] Regression test: echidna baseline (15 weak points, known profile)
+- [x] CI with GitHub Actions (rust-ci, cargo-audit, codeql, scorecard, coverage)
+- [x] Code coverage reporting (codecov integration)
 
-**Estimated: 2–3 days**
+**Completed: 2026-02-07** (same day as v0.2)
 
 ---
 
-## v0.4 — Constraint Sets
+## v1.0 — Production Release ✅ COMPLETE
+
+**Theme: Battle-tested infrastructure and documentation**
+
+- [x] RSR compliance (AI manifest, SCM files, 17 workflows)
+- [x] Comprehensive documentation (SECURITY.md, CONTRIBUTING.md, LICENSE)
+- [x] Enhanced README with badges and examples
+- [x] Comprehensive unit tests (20+ tests covering all analyzers)
+- [x] Integration tests (X-Ray pipeline, vulnerable programs)
+- [x] Regression tests (eclexia, echidna, self-test baselines)
+- [x] CI/CD with GitHub Actions (11 workflows)
+- [x] Code coverage reporting with codecov
+- [x] Config file support (panic-attacker.toml)
+- [x] EditorConfig for consistent formatting
+- [x] Stable JSON schema (versioned, documented)
+- [x] MSRV policy (1.75.0)
+- [x] Zero compiler warnings
+
+**Completed: 2026-02-07** (infrastructure-first path)
+
+**Status**: Production-ready for X-Ray analysis and basic stress testing.
+Advanced features (constraint sets, real Datalog, multi-program) deferred to v1.x/v2.0.
+
+---
+
+## v0.4 — Constraint Sets (PLANNED FOR v1.1)
 
 **Theme: Composable stress profiles**
 

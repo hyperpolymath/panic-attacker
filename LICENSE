@@ -1,0 +1,177 @@
+Palimpsest Meta-Public License (PMPL)
+Version 1.0, February 2026
+
+Copyright (c) 2026 Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>
+
+SPDX-License-Identifier: PMPL-1.0-or-later
+
+================================================================================
+
+PREAMBLE
+
+The Palimpsest Meta-Public License (PMPL) is designed for software that evolves
+through continuous reinterpretation and adaptation. Like a palimpsest—a
+manuscript that has been written upon multiple times, with earlier text still
+visible beneath—software under this license embraces its evolutionary nature.
+
+This license recognizes that all meaningful software is built upon prior work,
+and that the boundaries between original work, derived work, and inspiration
+are fluid and contextual rather than absolute.
+
+================================================================================
+
+TERMS AND CONDITIONS
+
+1. DEFINITIONS
+
+"The Work" refers to any copyrightable work licensed under this License.
+
+"You" or "Your" means an individual or legal entity exercising rights under
+this License.
+
+"Modification" means any addition to, deletion from, or change to the substance
+or structure of the Work.
+
+"Derivative Work" means any work that is based on (or derived from) the Work
+and for which the editorial revisions, annotations, elaborations, or other
+modifications represent an original work of authorship.
+
+"Distribute" means to make available to the public the original and copies of
+the Work or Derivative Work, as appropriate, whether by sale or other transfer
+of ownership, or by rental, lease or lending.
+
+2. GRANT OF COPYRIGHT LICENSE
+
+Subject to the terms and conditions of this License, each Contributor hereby
+grants to You a perpetual, worldwide, non-exclusive, no-charge, royalty-free,
+irrevocable copyright license to reproduce, prepare Derivative Works of,
+publicly display, publicly perform, sublicense, and Distribute the Work and
+such Derivative Works.
+
+3. DISTRIBUTION AND MODIFICATION
+
+You may reproduce and Distribute copies of the Work or Derivative Works thereof
+in any medium, with or without Modifications, provided that You meet the
+following conditions:
+
+a) You must give any other recipients of the Work or Derivative Works a copy
+   of this License;
+
+b) You must cause any modified files to carry prominent notices stating that
+   You changed the files;
+
+c) You must retain, in all Derivative Works that You Distribute, all copyright,
+   patent, trademark, and attribution notices from the Work, excluding those
+   notices that do not pertain to any part of the Derivative Works;
+
+d) If the Work includes a "NOTICE" text file as part of its distribution, then
+   any Derivative Works that You Distribute must include a readable copy of the
+   attribution notices contained within such NOTICE file;
+
+e) All Derivative Works must be licensed under this License or a later version
+   of this License.
+
+4. PATENT LICENSE
+
+Subject to the terms and conditions of this License, each Contributor hereby
+grants to You a perpetual, worldwide, non-exclusive, no-charge, royalty-free,
+irrevocable (except as stated in this section) patent license to make, have
+made, use, offer to sell, sell, import, and otherwise transfer the Work.
+
+5. TRADEMARKS
+
+This License does not grant permission to use the trade names, trademarks,
+service marks, or product names of the Licensor, except as required for
+reasonable and customary use in describing the origin of the Work.
+
+6. DISCLAIMER OF WARRANTY
+
+THE WORK IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE WORK OR THE USE OR OTHER DEALINGS IN THE WORK.
+
+7. LIMITATION OF LIABILITY
+
+In no event and under no legal theory, whether in tort (including negligence),
+contract, or otherwise, unless required by applicable law (such as deliberate
+and grossly negligent acts) or agreed to in writing, shall any Contributor be
+liable to You for damages, including any direct, indirect, special, incidental,
+or consequential damages of any character arising as a result of this License
+or out of the use or inability to use the Work.
+
+8. ACCEPTING WARRANTY OR ADDITIONAL LIABILITY
+
+While redistributing the Work or Derivative Works thereof, You may choose to
+offer, and charge a fee for, acceptance of support, warranty, indemnity, or
+other liability obligations and/or rights consistent with this License. However,
+in accepting such obligations, You may act only on Your own behalf and on Your
+sole responsibility, not on behalf of any other Contributor.
+
+9. META-LICENSING
+
+This license may be used to license other licenses, creating a meta-licensing
+structure. Works licensed under PMPL may include components licensed under
+other compatible open source licenses (MIT, Apache 2.0, BSD, MPL, etc.) without
+requiring relicensing of those components.
+
+10. VERSION COMPATIBILITY
+
+This License is versioned. You may distribute the Work under the terms of the
+version of the License under which You received it, or any later version
+published by the PMPL Stewards.
+
+================================================================================
+
+END OF TERMS AND CONDITIONS
+
+================================================================================
+
+HOW TO APPLY THIS LICENSE
+
+To apply this License to your work, attach the following boilerplate notice,
+with the fields enclosed by brackets "[]" replaced with your own identifying
+information:
+
+   SPDX-License-Identifier: PMPL-1.0-or-later
+
+   Copyright (c) [year] [name] <[email]>
+
+   Licensed under the Palimpsest Meta-Public License v1.0 or later.
+   You may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       https://licenses.hyperpolymath.org/PMPL-1.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+================================================================================
+
+APPENDIX: PHILOSOPHY
+
+The Palimpsest Meta-Public License embraces several key philosophical principles:
+
+1. EVOLUTIONARY ADAPTATION: Software evolves through reinterpretation and
+   adaptation, not just modification. Like a palimpsest, the history of changes
+   is part of the artifact itself.
+
+2. CONTEXTUAL BOUNDARIES: The distinction between original work and derivative
+   work is contextual rather than absolute. All software is built upon prior
+   work, and innovation comes from creative recombination.
+
+3. INTELLECTUAL HUMILITY: Acknowledge that your work builds on the work of
+   countless others, visible and invisible, acknowledged and unacknowledged.
+
+4. FORWARD COMPATIBILITY: Encourage evolution by making it easy to build upon
+   this work while maintaining attribution and the freedom to continue evolving.
+
+5. META-LICENSING: Recognize that licensing itself is a form of work that
+   should be open to adaptation and evolution.
+
+================================================================================
