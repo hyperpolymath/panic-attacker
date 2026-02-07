@@ -181,7 +181,7 @@ impl SignatureEngine {
             if let Fact::Free { var, location } = fact {
                 free_locations
                     .entry(var.clone())
-                    .or_insert_with(Vec::new)
+                    .or_default()
                     .push(*location);
             }
         }

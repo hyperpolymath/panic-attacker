@@ -5,6 +5,9 @@
 //! This program contains intentional bugs for demonstration purposes.
 //! DO NOT use this code in production!
 
+#![allow(clippy::unnecessary_literal_unwrap)]
+#![allow(static_mut_refs)]
+
 use std::env;
 use std::sync::{Arc, Mutex};
 use std::thread;

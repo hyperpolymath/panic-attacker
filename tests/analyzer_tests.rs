@@ -5,7 +5,6 @@
 use panic_attacker::types::*;
 use panic_attacker::xray;
 use std::fs;
-use std::path::Path;
 use tempfile::TempDir;
 
 fn create_test_file(dir: &TempDir, name: &str, content: &str) -> std::path::PathBuf {

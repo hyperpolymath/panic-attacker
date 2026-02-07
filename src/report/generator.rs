@@ -58,7 +58,7 @@ impl ReportGenerator {
             * 20.0;
         score -= (xray.statistics.unsafe_blocks as f64) * 5.0;
 
-        score = score.max(0.0).min(100.0);
+        score = score.clamp(0.0, 100.0);
 
         // Identify critical issues
         for result in results {
