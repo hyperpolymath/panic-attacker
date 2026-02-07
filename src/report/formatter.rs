@@ -67,6 +67,42 @@ impl ReportFormatter {
                 );
             }
         }
+
+        // Per-file breakdown sorted by risk score
+        if !xray.file_statistics.is_empty() {
+            println!();
+            println!("  Per-file Breakdown (top 10 by risk):");
+
+            let mut scored: Vec<_> = xray
+                .file_statistics
+                .iter()
+                .map(|fs| {
+                    let risk = fs.unsafe_blocks * 3
+                        + fs.panic_sites * 2
+                        + fs.unwrap_calls
+                        + fs.threading_constructs * 2;
+                    (risk, fs)
+                })
+                .collect();
+            scored.sort_by(|a, b| b.0.cmp(&a.0));
+
+            for (rank, (risk, fs)) in scored.iter().take(10).enumerate() {
+                println!(
+                    "    {}. {} (risk: {}, unsafe: {}, panics: {}, unwraps: {}, threads: {})",
+                    rank + 1,
+                    fs.file_path.bold(),
+                    risk,
+                    fs.unsafe_blocks,
+                    fs.panic_sites,
+                    fs.unwrap_calls,
+                    fs.threading_constructs,
+                );
+            }
+
+            if scored.len() > 10 {
+                println!("    ... and {} more files", scored.len() - 10);
+            }
+        }
     }
 
     fn print_attack_summary(&self, results: &[AttackResult]) {

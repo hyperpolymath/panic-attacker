@@ -5,17 +5,27 @@
 use crate::attack::strategies::*;
 use crate::signatures::SignatureEngine;
 use crate::types::*;
+use crate::xray::patterns::PatternDetector;
 use anyhow::{Context, Result};
 use std::process::{Command, Stdio};
 use std::time::Instant;
 
 pub struct AttackExecutor {
     config: AttackConfig,
+    patterns: Vec<AttackPattern>,
 }
 
 impl AttackExecutor {
     pub fn new(config: AttackConfig) -> Self {
-        Self { config }
+        Self {
+            config,
+            patterns: Vec::new(),
+        }
+    }
+
+    pub fn with_patterns(config: AttackConfig, language: Language, frameworks: &[Framework]) -> Self {
+        let patterns = PatternDetector::patterns_for(language, frameworks);
+        Self { config, patterns }
     }
 
     pub fn execute(&self) -> Result<Vec<AttackResult>> {
@@ -39,6 +49,21 @@ impl AttackExecutor {
         axis: AttackAxis,
     ) -> Result<AttackResult> {
         let strategy = self.select_strategy(axis);
+        println!("  Strategy: {}", strategy.description());
+
+        // Log applicable patterns for this axis
+        let applicable: Vec<_> = self
+            .patterns
+            .iter()
+            .filter(|p| p.applicable_axes.contains(&axis))
+            .collect();
+        if !applicable.is_empty() {
+            println!("  Applicable patterns:");
+            for pat in &applicable {
+                println!("    - {}: {}", pat.name, pat.description);
+            }
+        }
+
         let start = Instant::now();
         let mut crashes = Vec::new();
         let mut peak_memory = 0u64;
@@ -314,6 +339,3 @@ impl AttackExecutor {
         }
     }
 }
-
-// Add chrono dependency for timestamps
-use chrono;

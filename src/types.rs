@@ -143,6 +143,19 @@ pub enum SignatureType {
     UnhandledError,
 }
 
+/// Per-file statistics from X-Ray analysis
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FileStatistics {
+    pub file_path: String,
+    pub lines: usize,
+    pub unsafe_blocks: usize,
+    pub panic_sites: usize,
+    pub unwrap_calls: usize,
+    pub allocation_sites: usize,
+    pub io_operations: usize,
+    pub threading_constructs: usize,
+}
+
 /// X-Ray analysis results
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct XRayReport {
@@ -151,6 +164,7 @@ pub struct XRayReport {
     pub frameworks: Vec<Framework>,
     pub weak_points: Vec<WeakPoint>,
     pub statistics: ProgramStatistics,
+    pub file_statistics: Vec<FileStatistics>,
     pub recommended_attacks: Vec<AttackAxis>,
 }
 
@@ -254,9 +268,11 @@ pub enum Fact {
     Lock { mutex: String, location: usize },
     Unlock { mutex: String, location: usize },
     ThreadSpawn { id: String, location: usize },
+    #[allow(dead_code)] // Reserved for v0.5 Datalog engine
     ThreadJoin { id: String, location: usize },
     Write { var: String, location: usize },
     Read { var: String, location: usize },
+    #[allow(dead_code)] // Reserved for v0.5 Datalog engine
     Ordering { before: usize, after: usize },
 }
 
@@ -264,7 +280,9 @@ pub enum Fact {
 #[derive(Debug, Clone)]
 pub struct Rule {
     pub name: String,
+    #[allow(dead_code)] // Reserved for v0.5 Datalog engine
     pub head: Predicate,
+    #[allow(dead_code)] // Reserved for v0.5 Datalog engine
     pub body: Vec<Predicate>,
 }
 

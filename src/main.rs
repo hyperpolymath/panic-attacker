@@ -20,7 +20,7 @@ use types::*;
 
 #[derive(Parser)]
 #[command(name = "panic-attacker")]
-#[command(version = "0.1.0")]
+#[command(version = "0.2.0")]
 #[command(about = "Universal stress testing and logic-based bug signature detection")]
 #[command(long_about = None)]
 struct Cli {
@@ -240,7 +240,11 @@ fn main() -> Result<()> {
                 parallel_attacks: false,
             };
 
-            let attack_results = attack::execute_attack(config)?;
+            let attack_results = attack::execute_attack_with_patterns(
+                config,
+                xray_report.language,
+                &xray_report.frameworks,
+            )?;
 
             // Generate comprehensive report
             println!("\nPhase 3: Report Generation");

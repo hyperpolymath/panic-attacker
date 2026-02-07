@@ -15,3 +15,13 @@ pub fn execute_attack(config: AttackConfig) -> Result<Vec<AttackResult>> {
     let executor = AttackExecutor::new(config);
     executor.execute()
 }
+
+/// Execute an attack with pattern-aware strategy selection
+pub fn execute_attack_with_patterns(
+    config: AttackConfig,
+    language: Language,
+    frameworks: &[Framework],
+) -> Result<Vec<AttackResult>> {
+    let executor = AttackExecutor::with_patterns(config, language, frameworks);
+    executor.execute()
+}

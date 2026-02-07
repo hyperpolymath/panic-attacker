@@ -3,7 +3,7 @@
 //! Core X-Ray analyzer implementation
 
 use crate::types::*;
-use anyhow::{Context, Result};
+use anyhow::Result;
 use regex::Regex;
 use std::collections::HashSet;
 use std::fs;
@@ -12,10 +12,19 @@ use std::path::{Path, PathBuf};
 pub struct Analyzer {
     target: PathBuf,
     language: Language,
+    verbose: bool,
 }
 
 impl Analyzer {
     pub fn new(target: &Path) -> Result<Self> {
+        Self::build(target, false)
+    }
+
+    pub fn new_verbose(target: &Path) -> Result<Self> {
+        Self::build(target, true)
+    }
+
+    fn build(target: &Path, verbose: bool) -> Result<Self> {
         if !target.exists() {
             anyhow::bail!("Target does not exist: {}", target.display());
         }
@@ -30,12 +39,12 @@ impl Analyzer {
         Ok(Self {
             target: target.to_path_buf(),
             language,
+            verbose,
         })
     }
 
     pub fn analyze(&self) -> Result<XRayReport> {
-        let mut weak_points = Vec::new();
-        let mut statistics = ProgramStatistics {
+        let mut global_stats = ProgramStatistics {
             total_lines: 0,
             unsafe_blocks: 0,
             panic_sites: 0,
@@ -44,40 +53,121 @@ impl Analyzer {
             io_operations: 0,
             threading_constructs: 0,
         };
+        let mut all_weak_points = Vec::new();
+        let mut file_statistics = Vec::new();
 
         // Collect all source files
         let files = self.collect_source_files()?;
 
+        // Strip prefix for display paths
+        let base = if self.target.is_dir() {
+            self.target.clone()
+        } else {
+            self.target.parent().unwrap_or(Path::new(".")).to_path_buf()
+        };
+
         for file in &files {
-            let content = match fs::read_to_string(file) {
-                Ok(c) => c,
-                Err(_) => {
-                    // Skip non-UTF-8 or unreadable files (binary artifacts, etc.)
+            let raw_bytes = match fs::read(file) {
+                Ok(b) => b,
+                Err(e) => {
+                    if self.verbose {
+                        eprintln!("Skipping unreadable file: {} ({})", file.display(), e);
+                    }
                     continue;
                 }
             };
 
-            // Update statistics
-            statistics.total_lines += content.lines().count();
+            // Try UTF-8 first, then Latin-1 fallback
+            let content = match String::from_utf8(raw_bytes.clone()) {
+                Ok(s) => s,
+                Err(_) => {
+                    let (cow, _, had_errors) =
+                        encoding_rs::WINDOWS_1252.decode(&raw_bytes);
+                    if had_errors {
+                        if self.verbose {
+                            eprintln!(
+                                "Skipping non-text file: {} (neither UTF-8 nor Latin-1)",
+                                file.display()
+                            );
+                        }
+                        continue;
+                    }
+                    cow.into_owned()
+                }
+            };
+
+            let rel_path = file
+                .strip_prefix(&base)
+                .unwrap_or(file)
+                .to_string_lossy()
+                .to_string();
+
+            // Fresh per-file statistics
+            let mut file_stats = ProgramStatistics {
+                total_lines: 0,
+                unsafe_blocks: 0,
+                panic_sites: 0,
+                unwrap_calls: 0,
+                allocation_sites: 0,
+                io_operations: 0,
+                threading_constructs: 0,
+            };
+
+            file_stats.total_lines = content.lines().count();
+
+            // Per-file weak points
+            let mut file_weak_points = Vec::new();
 
             // Language-specific analysis
             match self.language {
                 Language::Rust => {
-                    self.analyze_rust(&content, &mut statistics, &mut weak_points)?;
+                    self.analyze_rust(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
                 }
                 Language::C | Language::Cpp => {
-                    self.analyze_c_cpp(&content, &mut statistics, &mut weak_points)?;
+                    self.analyze_c_cpp(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
                 }
                 Language::Go => {
-                    self.analyze_go(&content, &mut statistics, &mut weak_points)?;
+                    self.analyze_go(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
                 }
                 Language::Python => {
-                    self.analyze_python(&content, &mut statistics, &mut weak_points)?;
+                    self.analyze_python(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
                 }
                 _ => {
-                    // Generic analysis for other languages
-                    self.analyze_generic(&content, &mut statistics, &mut weak_points)?;
+                    self.analyze_generic(&content, &mut file_stats, &rel_path)?;
                 }
+            }
+
+            // Accumulate into global stats
+            global_stats.total_lines += file_stats.total_lines;
+            global_stats.unsafe_blocks += file_stats.unsafe_blocks;
+            global_stats.panic_sites += file_stats.panic_sites;
+            global_stats.unwrap_calls += file_stats.unwrap_calls;
+            global_stats.allocation_sites += file_stats.allocation_sites;
+            global_stats.io_operations += file_stats.io_operations;
+            global_stats.threading_constructs += file_stats.threading_constructs;
+
+            // Collect per-file weak points
+            all_weak_points.extend(file_weak_points);
+
+            // Build FileStatistics for non-trivial files
+            let has_findings = file_stats.unsafe_blocks > 0
+                || file_stats.panic_sites > 0
+                || file_stats.unwrap_calls > 0
+                || file_stats.allocation_sites > 0
+                || file_stats.io_operations > 0
+                || file_stats.threading_constructs > 0;
+
+            if has_findings {
+                file_statistics.push(FileStatistics {
+                    file_path: rel_path,
+                    lines: file_stats.total_lines,
+                    unsafe_blocks: file_stats.unsafe_blocks,
+                    panic_sites: file_stats.panic_sites,
+                    unwrap_calls: file_stats.unwrap_calls,
+                    allocation_sites: file_stats.allocation_sites,
+                    io_operations: file_stats.io_operations,
+                    threading_constructs: file_stats.threading_constructs,
+                });
             }
         }
 
@@ -85,14 +175,15 @@ impl Analyzer {
         let frameworks = self.detect_frameworks(&files)?;
 
         // Generate recommendations
-        let recommended_attacks = self.generate_recommendations(&weak_points, &statistics);
+        let recommended_attacks = self.generate_recommendations(&all_weak_points, &global_stats);
 
         Ok(XRayReport {
             program_path: self.target.clone(),
             language: self.language,
             frameworks,
-            weak_points,
-            statistics,
+            weak_points: all_weak_points,
+            statistics: global_stats,
+            file_statistics,
             recommended_attacks,
         })
     }
@@ -183,6 +274,7 @@ impl Analyzer {
         content: &str,
         stats: &mut ProgramStatistics,
         weak_points: &mut Vec<WeakPoint>,
+        file_path: &str,
     ) -> Result<()> {
         // Count unsafe blocks
         stats.unsafe_blocks += content.matches("unsafe {").count();
@@ -209,13 +301,16 @@ impl Analyzer {
         stats.threading_constructs += content.matches("std::thread::").count();
         stats.threading_constructs += content.matches("std::sync::").count();
 
-        // Detect weak points
+        // Detect weak points (per-file, not running-total)
         if stats.unsafe_blocks > 0 {
             weak_points.push(WeakPoint {
                 category: WeakPointCategory::UnsafeCode,
-                location: None,
+                location: Some(file_path.to_string()),
                 severity: Severity::High,
-                description: format!("{} unsafe blocks detected", stats.unsafe_blocks),
+                description: format!(
+                    "{} unsafe blocks in {}",
+                    stats.unsafe_blocks, file_path
+                ),
                 recommended_attack: vec![AttackAxis::Memory, AttackAxis::Concurrency],
             });
         }
@@ -223,9 +318,12 @@ impl Analyzer {
         if stats.unwrap_calls > 5 {
             weak_points.push(WeakPoint {
                 category: WeakPointCategory::PanicPath,
-                location: None,
+                location: Some(file_path.to_string()),
                 severity: Severity::Medium,
-                description: format!("{} unwrap/expect calls detected", stats.unwrap_calls),
+                description: format!(
+                    "{} unwrap/expect calls in {}",
+                    stats.unwrap_calls, file_path
+                ),
                 recommended_attack: vec![AttackAxis::Memory, AttackAxis::Disk],
             });
         }
@@ -238,6 +336,7 @@ impl Analyzer {
         content: &str,
         stats: &mut ProgramStatistics,
         weak_points: &mut Vec<WeakPoint>,
+        file_path: &str,
     ) -> Result<()> {
         // Count allocations
         stats.allocation_sites += content.matches("malloc(").count();
@@ -258,9 +357,9 @@ impl Analyzer {
         if unchecked_malloc.is_match(content) {
             weak_points.push(WeakPoint {
                 category: WeakPointCategory::UncheckedAllocation,
-                location: None,
+                location: Some(file_path.to_string()),
                 severity: Severity::Critical,
-                description: "Unchecked malloc detected".to_string(),
+                description: format!("Unchecked malloc in {}", file_path),
                 recommended_attack: vec![AttackAxis::Memory],
             });
         }
@@ -273,6 +372,7 @@ impl Analyzer {
         content: &str,
         stats: &mut ProgramStatistics,
         weak_points: &mut Vec<WeakPoint>,
+        file_path: &str,
     ) -> Result<()> {
         stats.allocation_sites += content.matches("make(").count();
         stats.threading_constructs += content.matches("go func").count();
@@ -283,9 +383,9 @@ impl Analyzer {
         if go_count > 10 {
             weak_points.push(WeakPoint {
                 category: WeakPointCategory::ResourceLeak,
-                location: None,
+                location: Some(file_path.to_string()),
                 severity: Severity::Medium,
-                description: format!("{} goroutines spawned", go_count),
+                description: format!("{} goroutines spawned in {}", go_count, file_path),
                 recommended_attack: vec![AttackAxis::Concurrency, AttackAxis::Memory],
             });
         }
@@ -298,6 +398,7 @@ impl Analyzer {
         content: &str,
         stats: &mut ProgramStatistics,
         weak_points: &mut Vec<WeakPoint>,
+        file_path: &str,
     ) -> Result<()> {
         stats.io_operations += content.matches("open(").count();
         stats.threading_constructs += content.matches("threading.").count();
@@ -306,9 +407,9 @@ impl Analyzer {
         if content.contains("while True:") {
             weak_points.push(WeakPoint {
                 category: WeakPointCategory::UnboundedLoop,
-                location: None,
+                location: Some(file_path.to_string()),
                 severity: Severity::High,
-                description: "Unbounded while True loop detected".to_string(),
+                description: format!("Unbounded while True loop in {}", file_path),
                 recommended_attack: vec![AttackAxis::Cpu, AttackAxis::Time],
             });
         }
@@ -320,7 +421,7 @@ impl Analyzer {
         &self,
         content: &str,
         stats: &mut ProgramStatistics,
-        _weak_points: &mut Vec<WeakPoint>,
+        _file_path: &str,
     ) -> Result<()> {
         // Generic heuristics
         stats.allocation_sites += content.matches("alloc").count();

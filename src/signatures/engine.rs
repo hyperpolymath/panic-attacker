@@ -24,11 +24,26 @@ impl SignatureEngine {
         // Extract facts from crash report
         let facts = self.extract_facts(crash);
 
-        // Apply inference rules
-        signatures.extend(self.infer_use_after_free(&facts, crash));
-        signatures.extend(self.infer_double_free(&facts, crash));
-        signatures.extend(self.infer_deadlock(&facts, crash));
-        signatures.extend(self.infer_data_race(&facts, crash));
+        // Apply defined rules by dispatching on rule name
+        for rule in self.rules.rules() {
+            match rule.name.as_str() {
+                "use_after_free" => {
+                    signatures.extend(self.infer_use_after_free(&facts, crash));
+                }
+                "double_free" => {
+                    signatures.extend(self.infer_double_free(&facts, crash));
+                }
+                "deadlock" => {
+                    signatures.extend(self.infer_deadlock(&facts, crash));
+                }
+                "data_race" => {
+                    signatures.extend(self.infer_data_race(&facts, crash));
+                }
+                _ => {} // Unknown rules ignored for forward compatibility
+            }
+        }
+
+        // These have no corresponding rules yet — always run
         signatures.extend(self.infer_null_deref(&facts, crash));
         signatures.extend(self.infer_buffer_overflow(&facts, crash));
 
