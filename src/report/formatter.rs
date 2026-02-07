@@ -16,7 +16,10 @@ impl ReportFormatter {
     }
 
     pub fn print(&self, report: &AssaultReport) {
-        println!("\n{}", "=== PANIC-ATTACKER ASSAULT REPORT ===".bold().cyan());
+        println!(
+            "\n{}",
+            "=== PANIC-ATTACKER ASSAULT REPORT ===".bold().cyan()
+        );
         println!();
 
         self.print_xray_summary(&report.xray_report);
@@ -46,7 +49,10 @@ impl ReportFormatter {
         println!("    Unwrap calls: {}", xray.statistics.unwrap_calls);
         println!("    Allocation sites: {}", xray.statistics.allocation_sites);
         println!("    I/O operations: {}", xray.statistics.io_operations);
-        println!("    Threading constructs: {}", xray.statistics.threading_constructs);
+        println!(
+            "    Threading constructs: {}",
+            xray.statistics.threading_constructs
+        );
         println!();
 
         if !xray.weak_points.is_empty() {
@@ -124,7 +130,10 @@ impl ReportFormatter {
             );
 
             if !result.crashes.is_empty() {
-                println!("    Crashes: {}", result.crashes.len().to_string().red().bold());
+                println!(
+                    "    Crashes: {}",
+                    result.crashes.len().to_string().red().bold()
+                );
                 for (i, crash) in result.crashes.iter().enumerate() {
                     println!("      {}. Signal: {:?}", i + 1, crash.signal);
                     if let Some(bt) = &crash.backtrace {
@@ -134,10 +143,7 @@ impl ReportFormatter {
             }
 
             if result.peak_memory > 0 {
-                println!(
-                    "    Peak memory: {} MB",
-                    result.peak_memory / (1024 * 1024)
-                );
+                println!("    Peak memory: {} MB", result.peak_memory / (1024 * 1024));
             }
         }
     }

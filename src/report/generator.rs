@@ -17,10 +17,7 @@ impl ReportGenerator {
         xray_report: XRayReport,
         attack_results: Vec<AttackResult>,
     ) -> Result<AssaultReport> {
-        let total_crashes = attack_results
-            .iter()
-            .map(|r| r.crashes.len())
-            .sum();
+        let total_crashes = attack_results.iter().map(|r| r.crashes.len()).sum();
 
         let total_signatures = attack_results
             .iter()
@@ -38,11 +35,7 @@ impl ReportGenerator {
         })
     }
 
-    fn assess_results(
-        &self,
-        xray: &XRayReport,
-        results: &[AttackResult],
-    ) -> OverallAssessment {
+    fn assess_results(&self, xray: &XRayReport, results: &[AttackResult]) -> OverallAssessment {
         let mut critical_issues = Vec::new();
         let mut recommendations = Vec::new();
 
@@ -89,21 +82,15 @@ impl ReportGenerator {
 
         // Generate recommendations
         if crash_count > 0.0 {
-            recommendations.push(
-                "Add comprehensive error handling for edge cases".to_string(),
-            );
+            recommendations.push("Add comprehensive error handling for edge cases".to_string());
         }
 
         if xray.statistics.unwrap_calls > 10 {
-            recommendations.push(
-                "Replace unwrap() calls with proper error handling".to_string(),
-            );
+            recommendations.push("Replace unwrap() calls with proper error handling".to_string());
         }
 
         if xray.statistics.unsafe_blocks > 0 {
-            recommendations.push(
-                "Audit unsafe blocks for memory safety violations".to_string(),
-            );
+            recommendations.push("Audit unsafe blocks for memory safety violations".to_string());
         }
 
         if results.iter().any(|r| {
@@ -111,9 +98,8 @@ impl ReportGenerator {
                 .iter()
                 .any(|s| matches!(s.signature_type, SignatureType::DataRace))
         }) {
-            recommendations.push(
-                "Add synchronization primitives to prevent data races".to_string(),
-            );
+            recommendations
+                .push("Add synchronization primitives to prevent data races".to_string());
         }
 
         if results.iter().any(|r| {
@@ -121,15 +107,11 @@ impl ReportGenerator {
                 .iter()
                 .any(|s| matches!(s.signature_type, SignatureType::Deadlock))
         }) {
-            recommendations.push(
-                "Review lock ordering to prevent deadlocks".to_string(),
-            );
+            recommendations.push("Review lock ordering to prevent deadlocks".to_string());
         }
 
         if score < 50.0 {
-            recommendations.push(
-                "Consider comprehensive refactoring for robustness".to_string(),
-            );
+            recommendations.push("Consider comprehensive refactoring for robustness".to_string());
         }
 
         OverallAssessment {

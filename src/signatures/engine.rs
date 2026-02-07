@@ -121,9 +121,17 @@ impl SignatureEngine {
 
         // Find all free and use pairs
         for fact1 in facts {
-            if let Fact::Free { var: var1, location: free_loc } = fact1 {
+            if let Fact::Free {
+                var: var1,
+                location: free_loc,
+            } = fact1
+            {
                 for fact2 in facts {
-                    if let Fact::Use { var: var2, location: use_loc } = fact2 {
+                    if let Fact::Use {
+                        var: var2,
+                        location: use_loc,
+                    } = fact2
+                    {
                         if var1 == var2 && free_loc < use_loc {
                             // Pattern matched!
                             signatures.push(BugSignature {
@@ -164,11 +172,7 @@ impl SignatureEngine {
     ///       Free(var, loc1),
     ///       Free(var, loc2),
     ///       loc1 != loc2
-    fn infer_double_free(
-        &self,
-        facts: &HashSet<Fact>,
-        crash: &CrashReport,
-    ) -> Vec<BugSignature> {
+    fn infer_double_free(&self, facts: &HashSet<Fact>, crash: &CrashReport) -> Vec<BugSignature> {
         let mut signatures = Vec::new();
         let mut free_locations: HashMap<String, Vec<usize>> = HashMap::new();
 

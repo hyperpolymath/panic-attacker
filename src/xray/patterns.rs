@@ -8,10 +8,7 @@ pub struct PatternDetector;
 
 impl PatternDetector {
     /// Get attack patterns for a specific program type
-    pub fn patterns_for(
-        language: Language,
-        frameworks: &[Framework],
-    ) -> Vec<AttackPattern> {
+    pub fn patterns_for(language: Language, frameworks: &[Framework]) -> Vec<AttackPattern> {
         let mut patterns = Vec::new();
 
         // Language-specific patterns
@@ -94,29 +91,25 @@ impl PatternDetector {
     }
 
     fn go_patterns() -> Vec<AttackPattern> {
-        vec![
-            AttackPattern {
-                name: "Goroutine Leak".to_string(),
-                description: "Spawn many concurrent operations".to_string(),
-                applicable_axes: vec![AttackAxis::Concurrency],
-                applicable_languages: vec![Language::Go],
-                applicable_frameworks: vec![],
-                command_template: "{program} --concurrent-requests 10000".to_string(),
-            },
-        ]
+        vec![AttackPattern {
+            name: "Goroutine Leak".to_string(),
+            description: "Spawn many concurrent operations".to_string(),
+            applicable_axes: vec![AttackAxis::Concurrency],
+            applicable_languages: vec![Language::Go],
+            applicable_frameworks: vec![],
+            command_template: "{program} --concurrent-requests 10000".to_string(),
+        }]
     }
 
     fn python_patterns() -> Vec<AttackPattern> {
-        vec![
-            AttackPattern {
-                name: "CPU Spin".to_string(),
-                description: "Trigger compute-heavy operations".to_string(),
-                applicable_axes: vec![AttackAxis::Cpu],
-                applicable_languages: vec![Language::Python],
-                applicable_frameworks: vec![],
-                command_template: "{program} --iterations 1000000".to_string(),
-            },
-        ]
+        vec![AttackPattern {
+            name: "CPU Spin".to_string(),
+            description: "Trigger compute-heavy operations".to_string(),
+            applicable_axes: vec![AttackAxis::Cpu],
+            applicable_languages: vec![Language::Python],
+            applicable_frameworks: vec![],
+            command_template: "{program} --iterations 1000000".to_string(),
+        }]
     }
 
     fn webserver_patterns() -> Vec<AttackPattern> {
@@ -127,8 +120,7 @@ impl PatternDetector {
                 applicable_axes: vec![AttackAxis::Network, AttackAxis::Concurrency],
                 applicable_languages: vec![],
                 applicable_frameworks: vec![Framework::WebServer],
-                command_template: "wrk -t12 -c400 -d{duration}s http://localhost:8080/"
-                    .to_string(),
+                command_template: "wrk -t12 -c400 -d{duration}s http://localhost:8080/".to_string(),
             },
             AttackPattern {
                 name: "Large POST".to_string(),
@@ -144,28 +136,24 @@ impl PatternDetector {
     }
 
     fn database_patterns() -> Vec<AttackPattern> {
-        vec![
-            AttackPattern {
-                name: "Query Storm".to_string(),
-                description: "Execute many concurrent queries".to_string(),
-                applicable_axes: vec![AttackAxis::Disk, AttackAxis::Concurrency],
-                applicable_languages: vec![],
-                applicable_frameworks: vec![Framework::Database],
-                command_template: "{program} --query-load 1000".to_string(),
-            },
-        ]
+        vec![AttackPattern {
+            name: "Query Storm".to_string(),
+            description: "Execute many concurrent queries".to_string(),
+            applicable_axes: vec![AttackAxis::Disk, AttackAxis::Concurrency],
+            applicable_languages: vec![],
+            applicable_frameworks: vec![Framework::Database],
+            command_template: "{program} --query-load 1000".to_string(),
+        }]
     }
 
     fn concurrency_patterns() -> Vec<AttackPattern> {
-        vec![
-            AttackPattern {
-                name: "Deadlock Induction".to_string(),
-                description: "Trigger concurrent operations that may deadlock".to_string(),
-                applicable_axes: vec![AttackAxis::Concurrency],
-                applicable_languages: vec![],
-                applicable_frameworks: vec![Framework::Concurrent],
-                command_template: "{program} --threads 100 --contention high".to_string(),
-            },
-        ]
+        vec![AttackPattern {
+            name: "Deadlock Induction".to_string(),
+            description: "Trigger concurrent operations that may deadlock".to_string(),
+            applicable_axes: vec![AttackAxis::Concurrency],
+            applicable_languages: vec![],
+            applicable_frameworks: vec![Framework::Concurrent],
+            command_template: "{program} --threads 100 --contention high".to_string(),
+        }]
     }
 }

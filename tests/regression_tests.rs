@@ -15,8 +15,7 @@ fn test_echidna_baseline() {
         return;
     }
 
-    let report = xray::analyze(echidna_path)
-        .expect("echidna analysis should succeed");
+    let report = xray::analyze(echidna_path).expect("echidna analysis should succeed");
 
     // v0.2 baseline: 15 weak points (down from 271 in v0.1)
     assert_eq!(report.language, panic_attacker::types::Language::Rust);
@@ -28,7 +27,11 @@ fn test_echidna_baseline() {
 
     // All weak points must have locations
     for wp in &report.weak_points {
-        assert!(wp.location.is_some(), "Weak point missing location: {:?}", wp);
+        assert!(
+            wp.location.is_some(),
+            "Weak point missing location: {:?}",
+            wp
+        );
     }
 
     // Should detect multiple frameworks
@@ -36,9 +39,15 @@ fn test_echidna_baseline() {
 
     // Should have file statistics
     assert!(!report.file_statistics.is_empty());
-    assert!(report.file_statistics.len() >= 40, "Expected 40+ files with findings");
+    assert!(
+        report.file_statistics.len() >= 40,
+        "Expected 40+ files with findings"
+    );
 
-    println!("✅ echidna baseline validated: {} weak points", report.weak_points.len());
+    println!(
+        "✅ echidna baseline validated: {} weak points",
+        report.weak_points.len()
+    );
 }
 
 #[test]
@@ -51,8 +60,7 @@ fn test_eclexia_baseline() {
         return;
     }
 
-    let report = xray::analyze(eclexia_path)
-        .expect("eclexia analysis should succeed");
+    let report = xray::analyze(eclexia_path).expect("eclexia analysis should succeed");
 
     // v0.2 baseline: 7 weak points
     assert_eq!(report.language, panic_attacker::types::Language::Rust);
@@ -64,14 +72,24 @@ fn test_eclexia_baseline() {
 
     // All weak points must have locations
     for wp in &report.weak_points {
-        assert!(wp.location.is_some(), "Weak point missing location: {:?}", wp);
+        assert!(
+            wp.location.is_some(),
+            "Weak point missing location: {:?}",
+            wp
+        );
     }
 
     // Should have file statistics
     assert!(!report.file_statistics.is_empty());
-    assert!(report.file_statistics.len() >= 40, "Expected 40+ files with findings");
+    assert!(
+        report.file_statistics.len() >= 40,
+        "Expected 40+ files with findings"
+    );
 
-    println!("✅ eclexia baseline validated: {} weak points", report.weak_points.len());
+    println!(
+        "✅ eclexia baseline validated: {} weak points",
+        report.weak_points.len()
+    );
 }
 
 #[test]
@@ -79,8 +97,7 @@ fn test_eclexia_baseline() {
 fn test_panic_attacker_on_itself() {
     let self_path = Path::new(env!("CARGO_MANIFEST_DIR"));
 
-    let report = xray::analyze(self_path)
-        .expect("self-analysis should succeed");
+    let report = xray::analyze(self_path).expect("self-analysis should succeed");
 
     assert_eq!(report.language, panic_attacker::types::Language::Rust);
 
@@ -96,5 +113,8 @@ fn test_panic_attacker_on_itself() {
         assert!(wp.location.is_some());
     }
 
-    println!("✅ Self-test passed: {} weak points found", report.weak_points.len());
+    println!(
+        "✅ Self-test passed: {} weak points found",
+        report.weak_points.len()
+    );
 }

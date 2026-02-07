@@ -81,8 +81,7 @@ impl Analyzer {
             let content = match String::from_utf8(raw_bytes.clone()) {
                 Ok(s) => s,
                 Err(_) => {
-                    let (cow, _, had_errors) =
-                        encoding_rs::WINDOWS_1252.decode(&raw_bytes);
+                    let (cow, _, had_errors) = encoding_rs::WINDOWS_1252.decode(&raw_bytes);
                     if had_errors {
                         if self.verbose {
                             eprintln!(
@@ -124,13 +123,23 @@ impl Analyzer {
                     self.analyze_rust(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
                 }
                 Language::C | Language::Cpp => {
-                    self.analyze_c_cpp(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
+                    self.analyze_c_cpp(
+                        &content,
+                        &mut file_stats,
+                        &mut file_weak_points,
+                        &rel_path,
+                    )?;
                 }
                 Language::Go => {
                     self.analyze_go(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
                 }
                 Language::Python => {
-                    self.analyze_python(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
+                    self.analyze_python(
+                        &content,
+                        &mut file_stats,
+                        &mut file_weak_points,
+                        &rel_path,
+                    )?;
                 }
                 _ => {
                     self.analyze_generic(&content, &mut file_stats, &rel_path)?;
@@ -307,10 +316,7 @@ impl Analyzer {
                 category: WeakPointCategory::UnsafeCode,
                 location: Some(file_path.to_string()),
                 severity: Severity::High,
-                description: format!(
-                    "{} unsafe blocks in {}",
-                    stats.unsafe_blocks, file_path
-                ),
+                description: format!("{} unsafe blocks in {}", stats.unsafe_blocks, file_path),
                 recommended_attack: vec![AttackAxis::Memory, AttackAxis::Concurrency],
             });
         }
@@ -461,9 +467,7 @@ impl Analyzer {
             }
 
             // Message queues
-            if content.contains("kafka")
-                || content.contains("rabbitmq")
-                || content.contains("nats")
+            if content.contains("kafka") || content.contains("rabbitmq") || content.contains("nats")
             {
                 frameworks.insert(Framework::MessageQueue);
             }

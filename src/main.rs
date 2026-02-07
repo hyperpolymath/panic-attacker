@@ -204,7 +204,10 @@ fn main() -> Result<()> {
                 if !result.signatures_detected.is_empty() {
                     println!("\n  Bug Signatures:");
                     for sig in &result.signatures_detected {
-                        println!("    - {:?} (confidence: {:.2})", sig.signature_type, sig.confidence);
+                        println!(
+                            "    - {:?} (confidence: {:.2})",
+                            sig.signature_type, sig.confidence
+                        );
                     }
                 }
             }
@@ -259,7 +262,9 @@ fn main() -> Result<()> {
             }
         }
 
-        Commands::Analyze { report: report_path } => {
+        Commands::Analyze {
+            report: report_path,
+        } => {
             println!("Analyzing crash report: {}", report_path.display());
 
             let content = std::fs::read_to_string(&report_path)?;
@@ -269,7 +274,10 @@ fn main() -> Result<()> {
 
             println!("\nSignatures Detected: {}", signatures.len());
             for sig in &signatures {
-                println!("\n  {:?} (confidence: {:.2})", sig.signature_type, sig.confidence);
+                println!(
+                    "\n  {:?} (confidence: {:.2})",
+                    sig.signature_type, sig.confidence
+                );
                 println!("  Evidence:");
                 for evidence in &sig.evidence {
                     println!("    - {}", evidence);

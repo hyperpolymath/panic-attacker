@@ -23,7 +23,11 @@ impl AttackExecutor {
         }
     }
 
-    pub fn with_patterns(config: AttackConfig, language: Language, frameworks: &[Framework]) -> Self {
+    pub fn with_patterns(
+        config: AttackConfig,
+        language: Language,
+        frameworks: &[Framework],
+    ) -> Self {
         let patterns = PatternDetector::patterns_for(language, frameworks);
         Self { config, patterns }
     }

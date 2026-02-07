@@ -15,24 +15,12 @@ pub enum AttackStrategy {
 impl AttackStrategy {
     pub fn description(&self) -> &str {
         match self {
-            AttackStrategy::CpuStress => {
-                "Stress test CPU with high computational load"
-            }
-            AttackStrategy::MemoryExhaustion => {
-                "Exhaust available memory with large allocations"
-            }
-            AttackStrategy::DiskThrashing => {
-                "Thrash disk I/O with many file operations"
-            }
-            AttackStrategy::NetworkFlood => {
-                "Flood network connections"
-            }
-            AttackStrategy::ConcurrencyStorm => {
-                "Create concurrency storm with many threads/tasks"
-            }
-            AttackStrategy::TimeBomb => {
-                "Run for extended duration to find time-dependent bugs"
-            }
+            AttackStrategy::CpuStress => "Stress test CPU with high computational load",
+            AttackStrategy::MemoryExhaustion => "Exhaust available memory with large allocations",
+            AttackStrategy::DiskThrashing => "Thrash disk I/O with many file operations",
+            AttackStrategy::NetworkFlood => "Flood network connections",
+            AttackStrategy::ConcurrencyStorm => "Create concurrency storm with many threads/tasks",
+            AttackStrategy::TimeBomb => "Run for extended duration to find time-dependent bugs",
         }
     }
 }

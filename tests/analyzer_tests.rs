@@ -97,9 +97,10 @@ int main() {
     let file = create_test_file(&dir, "test.c", content);
     let report = xray::analyze(&file).expect("analysis should succeed");
 
-    let unchecked = report.weak_points.iter().any(|wp| {
-        matches!(wp.category, WeakPointCategory::UncheckedAllocation)
-    });
+    let unchecked = report
+        .weak_points
+        .iter()
+        .any(|wp| matches!(wp.category, WeakPointCategory::UncheckedAllocation));
     assert!(unchecked, "Should detect unchecked malloc");
 }
 
@@ -134,9 +135,10 @@ def main():
     let report = xray::analyze(&file).expect("analysis should succeed");
 
     assert_eq!(report.language, Language::Python);
-    let unbounded = report.weak_points.iter().any(|wp| {
-        matches!(wp.category, WeakPointCategory::UnboundedLoop)
-    });
+    let unbounded = report
+        .weak_points
+        .iter()
+        .any(|wp| matches!(wp.category, WeakPointCategory::UnboundedLoop));
     assert!(unbounded, "Should detect unbounded loop");
 }
 
@@ -202,7 +204,10 @@ fn main() {
     let file = create_test_file(&dir, "test.rs", content);
     let report = xray::analyze(&file).expect("analysis should succeed");
 
-    assert!(!report.file_statistics.is_empty(), "Should have file statistics");
+    assert!(
+        !report.file_statistics.is_empty(),
+        "Should have file statistics"
+    );
     let stats = &report.file_statistics[0];
     assert!(stats.file_path.contains("test.rs"));
     assert!(stats.lines > 0);

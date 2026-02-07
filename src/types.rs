@@ -262,18 +262,48 @@ pub struct AttackPattern {
 /// Datalog fact for signature detection
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Fact {
-    Alloc { var: String, location: usize },
-    Free { var: String, location: usize },
-    Use { var: String, location: usize },
-    Lock { mutex: String, location: usize },
-    Unlock { mutex: String, location: usize },
-    ThreadSpawn { id: String, location: usize },
+    Alloc {
+        var: String,
+        location: usize,
+    },
+    Free {
+        var: String,
+        location: usize,
+    },
+    Use {
+        var: String,
+        location: usize,
+    },
+    Lock {
+        mutex: String,
+        location: usize,
+    },
+    Unlock {
+        mutex: String,
+        location: usize,
+    },
+    ThreadSpawn {
+        id: String,
+        location: usize,
+    },
     #[allow(dead_code)] // Reserved for v0.5 Datalog engine
-    ThreadJoin { id: String, location: usize },
-    Write { var: String, location: usize },
-    Read { var: String, location: usize },
+    ThreadJoin {
+        id: String,
+        location: usize,
+    },
+    Write {
+        var: String,
+        location: usize,
+    },
+    Read {
+        var: String,
+        location: usize,
+    },
     #[allow(dead_code)] // Reserved for v0.5 Datalog engine
-    Ordering { before: usize, after: usize },
+    Ordering {
+        before: usize,
+        after: usize,
+    },
 }
 
 /// Datalog rule for pattern detection
@@ -288,9 +318,24 @@ pub struct Rule {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Predicate {
-    UseAfterFree { var: String, use_loc: usize, free_loc: usize },
-    DoubleFree { var: String, loc1: usize, loc2: usize },
-    Deadlock { m1: String, m2: String },
-    DataRace { var: String, loc1: usize, loc2: usize },
+    UseAfterFree {
+        var: String,
+        use_loc: usize,
+        free_loc: usize,
+    },
+    DoubleFree {
+        var: String,
+        loc1: usize,
+        loc2: usize,
+    },
+    Deadlock {
+        m1: String,
+        m2: String,
+    },
+    DataRace {
+        var: String,
+        loc1: usize,
+        loc2: usize,
+    },
     Fact(Fact),
 }
