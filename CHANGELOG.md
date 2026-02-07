@@ -1,5 +1,41 @@
 # Changelog
 
+## [1.0.1] - 2026-02-07
+
+### Fixed
+- **CI/CD workflows**: All GitHub Actions now passing
+  - Updated MSRV from 1.75.0 → 1.85.0 (required for Cargo.lock v4 format)
+  - Fixed invalid codeql-action SHA pins (using version tags for Scorecard compatibility)
+  - Fixed TruffleHog configuration (BASE/HEAD commit conflict)
+  - Fixed EditorConfig indentation violations
+- **Code quality**:
+  - Resolved clippy warnings (manual_clamp, unwrap_or_default)
+  - Added `#[allow]` attributes for intentional vulnerabilities in examples
+  - Removed unused imports
+  - Applied rustfmt to all source files
+
+### Changed
+- **MSRV**: Updated from 1.75.0 to 1.85.0
+- **Workflows**: codeql-action now uses version tags instead of SHA pins
+
+## [1.0.0] - 2026-02-07
+
+### Added
+- **Production-ready infrastructure**:
+  - Complete RSR compliance (AI.a2ml manifest, 3 SCM files)
+  - 11 GitHub Actions workflows (CI, security, coverage, quality)
+  - Comprehensive documentation (SECURITY.md, CONTRIBUTING.md, LICENSE)
+  - Stable JSON schema (v1.0, documented, versioned)
+- **Testing**:
+  - 21 unit tests covering all analyzers
+  - 3 integration tests (X-Ray pipeline, vulnerable programs)
+  - 3 regression tests (echidna, eclexia, self-test baselines)
+  - Code coverage reporting with codecov
+- **Configuration**:
+  - Config file support (panic-attacker.toml)
+  - EditorConfig for consistent formatting
+  - MSRV policy (1.75.0, later updated to 1.85.0)
+
 ## [0.2.0] - 2026-02-07
 
 ### Fixed

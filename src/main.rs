@@ -20,7 +20,7 @@ use types::*;
 
 #[derive(Parser)]
 #[command(name = "panic-attacker")]
-#[command(version = "1.0.0")]
+#[command(version = "1.0.1")]
 #[command(about = "Universal stress testing and logic-based bug signature detection")]
 #[command(long_about = None)]
 struct Cli {
