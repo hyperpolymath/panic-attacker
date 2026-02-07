@@ -3,6 +3,7 @@
 name = "panic-attacker"
 version = "1.0.0"
 edition = "2021"
+rust-version = "1.85.0"
 authors = ["Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>"]
 license = "PMPL-1.0-or-later"
 description = "Universal stress testing and logic-based bug signature detection"

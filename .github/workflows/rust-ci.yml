@@ -53,16 +53,16 @@ jobs:
           echo "✅ Zero warnings"
 
   msrv:
-    name: Check MSRV (1.75.0)
+    name: Check MSRV (1.85.0)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
 
-      - name: Install Rust 1.75.0
+      - name: Install Rust 1.85.0
         uses: dtolnay/rust-toolchain@4be9e76fd7c4901c61fb841f559994984270fce7 # stable
         with:
-          toolchain: 1.75.0
+          toolchain: 1.85.0
 
       - name: Cache cargo registry
         uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2

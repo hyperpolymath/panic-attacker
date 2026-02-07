@@ -5,7 +5,7 @@
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/hyperpolymath/panic-attacker/badge)](https://securityscorecards.dev/viewer/?uri=github.com/hyperpolymath/panic-attacker)
 [![codecov](https://codecov.io/gh/hyperpolymath/panic-attacker/branch/main/graph/badge.svg)](https://codecov.io/gh/hyperpolymath/panic-attacker)
 [![License: PMPL](https://img.shields.io/badge/License-PMPL--1.0--or--later-blue.svg)](LICENSE)
-[![MSRV](https://img.shields.io/badge/MSRV-1.75.0-blue)](Cargo.toml)
+[![MSRV](https://img.shields.io/badge/MSRV-1.85.0-blue)](Cargo.toml)
 
 Universal stress testing and logic-based bug signature detection tool.
 
@@ -78,7 +78,7 @@ cargo install --path .
 
 ### Requirements
 
-- Rust 1.75.0 or later
+- Rust 1.85.0 or later
 - Cargo
 
 ## Quick Start
@@ -338,4 +338,4 @@ If you use panic-attacker in your research, please cite:
 
 ---
 
-**Status**: Active development | **Version**: 0.2.0 | **MSRV**: 1.75.0
+**Status**: Active development | **Version**: 0.2.0 | **MSRV**: 1.85.0

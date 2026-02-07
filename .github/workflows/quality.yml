@@ -24,7 +24,7 @@ jobs:
         uses: trufflesecurity/trufflehog@e9734c1ff25106f68d4266f0b09c1fcfc915dad1 # main
         with:
           path: ./
-          extra_args: --since-commit HEAD~10 --only-verified
+          extra_args: --only-verified --max-depth=10
 
   editorconfig:
     name: EditorConfig Check
