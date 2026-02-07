@@ -49,8 +49,13 @@ impl Analyzer {
         let files = self.collect_source_files()?;
 
         for file in &files {
-            let content = fs::read_to_string(file)
-                .with_context(|| format!("Failed to read {}", file.display()))?;
+            let content = match fs::read_to_string(file) {
+                Ok(c) => c,
+                Err(_) => {
+                    // Skip non-UTF-8 or unreadable files (binary artifacts, etc.)
+                    continue;
+                }
+            };
 
             // Update statistics
             statistics.total_lines += content.lines().count();
@@ -329,7 +334,10 @@ impl Analyzer {
         let mut frameworks = HashSet::new();
 
         for file in files {
-            let content = fs::read_to_string(file)?;
+            let content = match fs::read_to_string(file) {
+                Ok(c) => c,
+                Err(_) => continue,
+            };
 
             // Web servers
             if content.contains("actix_web")
