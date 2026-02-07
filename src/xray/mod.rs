@@ -49,7 +49,8 @@ pub fn analyze_verbose<P: AsRef<Path>>(target: P) -> Result<XRayReport> {
 
         for (rank, (risk, fs)) in scored.iter().take(10).enumerate() {
             println!(
-                "    {}. {} (risk: {}, lines: {}, unsafe: {}, panics: {}, unwraps: {}, alloc: {}, io: {}, threads: {})",
+                "    {}. {} (risk: {}, lines: {}, unsafe: {}, panics: {}, \
+                 unwraps: {}, alloc: {}, io: {}, threads: {})",
                 rank + 1,
                 fs.file_path,
                 risk,
