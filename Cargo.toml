@@ -5,7 +5,7 @@ version = "1.0.1"
 edition = "2021"
 rust-version = "1.85.0"
 authors = ["Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>"]
-license = "PMPL-1.0-or-later"
+license-file = "LICENSE"
 description = "Universal stress testing and logic-based bug signature detection"
 repository = "https://github.com/hyperpolymath/panic-attacker"
 
