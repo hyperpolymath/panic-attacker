@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+
+name: Scan and Report to VeriSimDB
+
+on:
+  workflow_call:
+    inputs:
+      repo_path:
+        description: 'Path to scan (default: .)'
+        default: '.'
+        type: string
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5  # v2
+
+      - name: Install panic-attack
+        run: |
+          cargo install --git https://github.com/hyperpolymath/panic-attacker --branch main
+
+      - name: Run scan
+        id: scan
+        run: |
+          panic-attack assail ${{ inputs.repo_path }} --format json --output scan-result.json
+          echo "scan_complete=true" >> $GITHUB_OUTPUT
+
+      - name: Send to verisimdb-data
+        if: steps.scan.outputs.scan_complete == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPO_NAME=$(basename $(pwd))
+          SCAN_DATA=$(cat scan-result.json)
+
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/hyperpolymath/verisimdb-data/dispatches" \
+            -d "{\"event_type\":\"scan_result\",\"client_payload\":{\"repo_name\":\"$REPO_NAME\",\"scan_data\":$SCAN_DATA}}"
