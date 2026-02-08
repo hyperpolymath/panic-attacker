@@ -4,6 +4,10 @@
 
 Static analysis and bug signature detection tool. Scans source code for weak points (unwrap/expect, unsafe blocks, panic sites, error handling gaps) across multiple languages.
 
+**Position in AmbientOps ecosystem**: Part of the hospital model, loosely affiliated. Sits alongside the Operating Room as a diagnostic tool for software health (while hardware-crash-team handles hardware health). Independent top-level repo, but feeds findings to the hospital's Records system via verisimdb.
+
+**Relationship to AmbientOps**: See [ambientops/.claude/CLAUDE.md](https://github.com/hyperpolymath/ambientops/blob/main/.claude/CLAUDE.md) for the hospital model overview.
+
 **IMPORTANT: This tool was renamed on 2026-02-08:**
 - Binary: `panic-attacker` → `panic-attack`
 - Subcommand: `xray` → `assail`
