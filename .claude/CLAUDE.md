@@ -60,6 +60,58 @@ panic-attack assail self-test  # Self-scan for validation
 - **sustainabot**: Ecological/economic code health metrics
 - **hardware-crash-team**: Sibling tool (hardware diagnostics vs software analysis)
 
+## Sweep Subcommand (Priority - Sonnet Task)
+
+Add a `sweep` subcommand that scans an entire directory of git repos in one pass.
+
+### Design
+
+```
+panic-attack sweep /path/to/repos/ [options]
+  --format json|text|sarif       Output format (default: text)
+  --output report.json           Save aggregate report
+  --push-to-verisimdb URL        Push each result to verisimdb API
+  --push-to-data-repo PATH       Write each result to verisimdb-data repo
+  --min-risk medium              Only report repos at or above this risk level
+  --parallel N                   Number of concurrent scans (default: 4)
+```
+
+### Implementation Steps
+
+1. Add `Sweep` variant to the `Commands` enum in main.rs
+2. Walk the directory looking for `.git/` subdirectories (use walkdir, already a dependency)
+3. For each repo found, call the existing `assail` scan logic
+4. Aggregate results into a summary report
+5. Optionally push each result to verisimdb-data repo as JSON files
+6. Print aggregate summary (total repos, total weak points, top offenders)
+
+### verisimdb-data Integration
+
+When `--push-to-data-repo` is specified:
+- Write each scan result to `{data-repo}/scans/{repo-name}.json`
+- Update `{data-repo}/index.json` with summary entry
+- Git add + commit with message "scan: update {repo-name} results"
+
+### GitHub Actions Reusable Workflow
+
+Create `.github/workflows/scan-and-report.yml` as a reusable workflow:
+```yaml
+# Other repos call this:
+# uses: hyperpolymath/panic-attacker/.github/workflows/scan-and-report.yml@main
+# This runs panic-attack assail on the calling repo
+# and dispatches results to verisimdb-data
+```
+
+## Scan Results from 2026-02-08 Session
+
+21 repos scanned, 118 total weak points, zero critical, 17 high:
+- protocol-squisher: 39 weak points (highest)
+- echidna: 15 weak points
+- verisimdb: 12 weak points
+- Most high-severity findings are expected unsafe blocks in FFI/GC code
+
+Results loaded into verisimdb as hexads (verified working with text search).
+
 ## Code Style
 
 - SPDX headers on all files: `PMPL-1.0-or-later`
