@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
 [package]
-name = "panic-attacker"
+name = "panic-attack"
 version = "1.0.1"
 edition = "2021"
 rust-version = "1.85.0"
@@ -24,5 +24,5 @@ encoding_rs = "0.8"
 tempfile = "3.8"
 
 [[bin]]
-name = "panic-attacker"
+name = "panic-attack"
 path = "src/main.rs"

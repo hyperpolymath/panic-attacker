@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
 
-//! Core type definitions for panic-attacker
+//! Core type definitions for panic-attack
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;

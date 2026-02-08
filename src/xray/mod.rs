@@ -24,7 +24,7 @@ pub fn analyze_verbose<P: AsRef<Path>>(target: P) -> Result<XRayReport> {
     let analyzer = Analyzer::new_verbose(target.as_ref())?;
     let report = analyzer.analyze()?;
 
-    println!("X-Ray Analysis Complete");
+    println!("Assail Analysis Complete");
     println!("  Language: {:?}", report.language);
     println!("  Frameworks: {:?}", report.frameworks);
     println!("  Weak Points: {}", report.weak_points.len());

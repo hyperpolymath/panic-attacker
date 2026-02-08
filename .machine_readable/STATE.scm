@@ -1,29 +1,36 @@
 ;; SPDX-License-Identifier: PMPL-1.0-or-later
-;; State checkpoint for panic-attacker
+;; State checkpoint for panic-attack (formerly panic-attacker)
 ;; Media Type: application/vnd.state+scm
-;; Last Updated: 2026-02-07
+;; Last Updated: 2026-02-08
 
 (state
   (metadata
     (version "1.0")
-    (project "panic-attacker")
-    (last-updated "2026-02-07T22:30:00Z")
-    (session-count 3))
+    (project "panic-attack")
+    (last-updated "2026-02-08T14:00:00Z")
+    (session-count 4))
 
   (project-context
-    (name "panic-attacker")
-    (tagline "Universal stress testing and logic-based bug signature detection")
+    (name "panic-attack")
+    (tagline "Universal static analysis and logic-based bug signature detection")
     (language "Rust")
     (type "CLI tool + library")
     (purpose "Multi-axis stress testing with Datalog-inspired bug signature detection")
-    (current-version "0.2.0")
-    (next-milestone "v1.0.0")
+    (current-version "1.0.1")
+    (next-milestone "v1.1.0")
     (lines-of-code 3200))
 
+  (naming
+    (note "Renamed from panic-attacker on 2026-02-08")
+    (binary "panic-attack")
+    (crate "panic-attack")
+    (subcommand "assail (formerly xray)")
+    (report-header "ASSAIL (formerly X-RAY)"))
+
   (current-position
-    (phase "infrastructure-hardening")
-    (milestone "v1.0.0")
-    (completion-percentage 45)
+    (phase "post-rename-stabilisation")
+    (milestone "v1.1.0")
+    (completion-percentage 50)
     (status "active")
     (health "green")
 
@@ -35,114 +42,108 @@
       (milestone
         (id "v0.2.0")
         (date "2026-02-07")
-        (description "Quality fixes: per-file stats, locations, zero warnings")))
+        (description "Quality fixes: per-file stats, locations, zero warnings"))
+      (milestone
+        (id "v1.0.0")
+        (date "2026-02-08")
+        (description "Rename: xray→assail, panic-attacker→panic-attack"))
+      (milestone
+        (id "v1.0.1")
+        (date "2026-02-08")
+        (description "Bugfix: JSON output confirmed working, installed to PATH")))
 
     (current-capabilities
-      "X-Ray static analysis (5 languages: Rust, C/C++, Go, Python, generic)"
+      "Assail static analysis (5 languages: Rust, C/C++, Go, Python, generic)"
       "6-axis stress testing (CPU, memory, disk, network, concurrency, time)"
       "Logic-based bug detection (use-after-free, double-free, deadlock, data-race, null-deref, buffer-overflow)"
       "Pattern library (language/framework-specific attacks)"
       "Per-file statistics and risk scoring"
       "Verbose mode with per-file breakdown"
       "Latin-1 fallback for non-UTF-8 files"
-      "JSON and terminal output"))
+      "JSON and terminal output"
+      "Self-test mode (assail self-test)"))
 
   (route-to-mvp
-    (target "v1.0.0: Production-ready with RSR compliance")
-    (strategy "Infrastructure-first: quality, docs, tests, CI/CD before feature expansion")
+    (target "v1.1.0: Bulk scanning + verisimdb integration")
+    (strategy "Add sweep subcommand for directory-of-repos scanning, push results to verisimdb")
 
     (milestones
       (milestone
-        (id "rsr-compliance")
-        (status "in-progress")
+        (id "sweep-subcommand")
+        (status "planned")
         (priority "critical")
         (tasks
-          "AI manifest (AI.a2ml)"
-          "SCM checkpoint files (STATE.scm, ECOSYSTEM.scm, META.scm)"
-          "17 standard workflows (hypatia, codeql, scorecard, etc.)"
-          "Rust-specific workflows (ci, audit, clippy, fmt)"))
+          "Add `sweep` subcommand for scanning directory of git repos"
+          "Auto-detect repos by .git presence"
+          "Aggregate results across repos"
+          "Push results to verisimdb API as hexads"))
+
+      (milestone
+        (id "hypatia-integration")
+        (status "planned")
+        (priority "high")
+        (tasks
+          "Feed scan results to hypatia rule engine"
+          "Support echidnabot proof verification"
+          "Support sustainabot ecological scoring"))
+
+      (milestone
+        (id "rsr-compliance")
+        (status "in-progress")
+        (priority "high")
+        (tasks
+          "17 standard workflows"
+          "Rust-specific workflows (ci, audit, clippy, fmt)"
+          "SARIF output for GitHub Security tab"))
 
       (milestone
         (id "documentation")
         (status "planned")
-        (priority "high")
+        (priority "medium")
         (tasks
           "SECURITY.md with vulnerability reporting"
           "CONTRIBUTING.md with development guide"
-          "LICENSE file with full PMPL text"
-          "Enhanced README with badges"
-          "API documentation (rustdoc)"))
-
-      (milestone
-        (id "test-coverage")
-        (status "planned")
-        (priority "high")
-        (tasks
-          "Unit tests for all analyzers (10+ tests)"
-          "Regression tests (eclexia, echidna baselines)"
-          "Code coverage reporting (target: 80%)"
-          "Integration tests for full pipeline"))
-
-      (milestone
-        (id "ci-cd")
-        (status "planned")
-        (priority "high")
-        (tasks
-          "GitHub Actions workflows"
-          "Badge generation"
-          "SARIF output for Security tab"
-          "Automated releases"))
-
-      (milestone
-        (id "polish")
-        (status "planned")
-        (priority "medium")
-        (tasks
-          "Config file support (panic-attacker.toml)"
-          "Shell completions (bash, zsh, fish)"
-          "Man page generation"
-          "--quiet mode for CI"))
-
-      (milestone
-        (id "hardening")
-        (status "planned")
-        (priority "high")
-        (tasks
-          "Test on 50+ repos"
-          "Fix false positives"
-          "Stable JSON schema"
-          "SBOM generation"
-          "MSRV policy (1.75.0)"))))
+          "API documentation (rustdoc)"
+          "Shell completions (bash, zsh, fish)"))))
 
   (blockers-and-issues
-    (blocker
-      (id "none")
-      (severity "none")
-      (description "No critical blockers")))
+    (issue
+      (id "rename-commit")
+      (severity "medium")
+      (description "Rename changes uncommitted - needs commit")))
 
   (critical-next-actions
     (action
       (priority "1")
-      (description "Complete RSR compliance (workflows, SCM files)")
-      (estimated-effort "2-3 hours"))
+      (description "Commit rename changes (xray→assail, panic-attacker→panic-attack)")
+      (estimated-effort "5 minutes"))
     (action
       (priority "2")
-      (description "Add documentation files (SECURITY, CONTRIBUTING, LICENSE)")
-      (estimated-effort "1 hour"))
+      (description "Add sweep subcommand for bulk directory scanning")
+      (estimated-effort "2-3 hours"))
     (action
       (priority "3")
-      (description "Enhance test coverage (unit + regression)")
-      (estimated-effort "3-4 hours"))
+      (description "Add verisimdb integration for results storage")
+      (estimated-effort "1-2 hours"))
     (action
       (priority "4")
-      (description "Set up CI/CD with GitHub Actions")
-      (estimated-effort "2 hours"))
-    (action
-      (priority "5")
-      (description "Polish features (config, man page, completions)")
+      (description "Complete RSR compliance (workflows, docs)")
       (estimated-effort "2-3 hours")))
 
   (session-history
+    (session
+      (id "4")
+      (date "2026-02-08")
+      (duration "1h")
+      (focus "Rename + bulk scanning + system crash diagnosis")
+      (outcomes
+        "Renamed xray→assail, panic-attacker→panic-attack across all files"
+        "Built v1.0.1, installed to PATH"
+        "Confirmed JSON output working (self-test)"
+        "Scanned 21 Eclipse repos, loaded results into verisimdb"
+        "Top findings: protocol-squisher (39 wp), echidna (15 wp), verisimdb (12 wp)"
+        "118 total weak points across 21 repos, zero critical, 17 high"))
+
     (session
       (id "3")
       (date "2026-02-07")
@@ -152,51 +153,5 @@
         "Implemented v0.2.0 (per-file stats, locations, Latin-1 fallback, patterns)"
         "Zero compiler warnings achieved"
         "7/7 tests passing (3 new integration tests)"
-        "Verified on echidna (15 weak points) and eclexia (7 weak points)"
         "Created AI manifest and SCM files"
-        "Defined v1.0 infrastructure-first roadmap"))
-
-    (session
-      (id "2")
-      (date "2026-02-07")
-      (duration "1h")
-      (focus "v0.1 completion and initial testing")
-      (outcomes
-        "Completed proof-of-concept implementation"
-        "2 unit tests passing"
-        "Tested on eclexia and echidna"))
-
-    (session
-      (id "1")
-      (date "2026-02-06")
-      (duration "3h")
-      (focus "Initial design and scaffolding")
-      (outcomes
-        "Project structure created"
-        "Core types defined"
-        "X-Ray analyzer implemented"
-        "Attack executor implemented"
-        "Signature engine implemented")))
-
-  (statistics
-    (total-commits 4)
-    (total-files 24)
-    (test-count 7)
-    (test-pass-rate 100)
-    (compiler-warnings 0)
-    (documentation-coverage 60)))
-
-;; Helper functions for querying state
-(define (get-completion-percentage)
-  45)
-
-(define (get-current-milestone)
-  "v1.0.0")
-
-(define (get-blockers)
-  '())
-
-(define (get-next-actions)
-  '("Complete RSR compliance"
-    "Add documentation files"
-    "Enhance test coverage"))
+        "Defined v1.0 infrastructure-first roadmap"))))

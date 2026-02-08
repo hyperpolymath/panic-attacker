@@ -18,7 +18,7 @@ impl ReportFormatter {
     pub fn print(&self, report: &AssaultReport) {
         println!(
             "\n{}",
-            "=== PANIC-ATTACKER ASSAULT REPORT ===".bold().cyan()
+            "=== PANIC-ATTACK ASSAULT REPORT ===".bold().cyan()
         );
         println!();
 
@@ -36,7 +36,7 @@ impl ReportFormatter {
     }
 
     fn print_xray_summary(&self, xray: &XRayReport) {
-        println!("{}", "X-RAY ANALYSIS".bold().yellow());
+        println!("{}", "ASSAIL ANALYSIS".bold().yellow());
         println!("  Program: {}", xray.program_path.display());
         println!("  Language: {:?}", xray.language);
         println!("  Frameworks: {:?}", xray.frameworks);

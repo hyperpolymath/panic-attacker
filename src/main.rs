@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
 
-//! panic-attacker: Universal stress testing and logic-based bug signature detection
+//! panic-attack: Universal stress testing and logic-based bug signature detection
 //!
 //! A tool for stress testing programs across multiple attack axes (CPU, memory, disk, network,
 //! concurrency) and detecting bug signatures using logic programming techniques inspired by
@@ -19,7 +19,7 @@ use std::time::Duration;
 use types::*;
 
 #[derive(Parser)]
-#[command(name = "panic-attacker")]
+#[command(name = "panic-attack")]
 #[command(version = "1.0.1")]
 #[command(about = "Universal stress testing and logic-based bug signature detection")]
 #[command(long_about = None)]
@@ -30,8 +30,8 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Run X-Ray static analysis on a target program
-    Xray {
+    /// Run assail static analysis on a target program
+    Assail {
         /// Target program or directory to analyze
         #[arg(value_name = "TARGET")]
         target: PathBuf,
@@ -64,7 +64,7 @@ enum Commands {
         duration: u64,
     },
 
-    /// Full assault: X-Ray + multi-axis attacks
+    /// Full assault: assail + multi-axis attacks
     Assault {
         /// Target program to assault
         #[arg(value_name = "PROGRAM")]
@@ -142,12 +142,12 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Xray {
+        Commands::Assail {
             target,
             output,
             verbose,
         } => {
-            println!("Running X-Ray analysis on: {}", target.display());
+            println!("Running assail analysis on: {}", target.display());
 
             let report = if verbose {
                 xray::analyze_verbose(&target)?
@@ -161,7 +161,7 @@ fn main() -> Result<()> {
                 println!("Report saved to: {}", output_path.display());
             } else {
                 // Print summary
-                println!("\nX-Ray Summary:");
+                println!("\nAssail Summary:");
                 println!("  Language: {:?}", report.language);
                 println!("  Weak points: {}", report.weak_points.len());
                 println!("  Recommended attacks: {:?}", report.recommended_attacks);
@@ -222,8 +222,8 @@ fn main() -> Result<()> {
         } => {
             println!("Launching full assault on: {}", program.display());
 
-            // First, run X-Ray analysis
-            println!("\nPhase 1: X-Ray Analysis");
+            // First, run assail analysis
+            println!("\nPhase 1: Assail Analysis");
             let xray_report = xray::analyze_verbose(&program)?;
 
             // Then, execute attacks

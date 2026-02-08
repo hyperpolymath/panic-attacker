@@ -255,6 +255,60 @@ vulnerability patterns and framework detection.
 
 ---
 
+## Enhancements Identified (2026-02-08)
+
+### Naming/Branding (HIGH PRIORITY)
+
+- Rename tool from `panic-attacker` to `panic-attack` (cleaner, more direct)
+- Rename `xray` command to `assail` (better panic-attack metaphor; "hypervigilance" as alternative)
+- Consider renaming `assault` to `overwhelm` or `barrage` to avoid confusion with `assail`
+- Update all CLI help text, README, and docs to reflect new names
+
+### Output Format Expansion
+
+- Add SARIF output format (GitHub Security integration)
+- Add Markdown output format (documentation-friendly)
+- Add HTML report generation (stakeholder-ready reports)
+- YAML output format (referenced in config but not implemented)
+
+### Integration
+
+- Native verisimdb integration: output results directly to verisimdb hexad API
+- Container/Flatpak awareness: option to extract and scan contents within containers
+- Support scanning inside Flatpak app directories (`~/.var/app/*`)
+- MCP server mode: expose panic-attack as an MCP tool for AI agent integration
+
+### Performance
+
+- Parallel xray scanning (currently sequential) using rayon
+- Compiled regex patterns instead of `string contains()`
+- Incremental analysis with result caching
+- Memory-mapped file reading for large codebases
+
+### Analysis Depth
+
+- Real Datalog engine (Crepe or Datafrog) to replace string matching in signatures
+- Backtrace analysis for crash reports (parse structured backtraces)
+- Integer overflow/underflow detection patterns
+- Resource descriptor leak detection (file handles, sockets)
+- Dynamic dispatch bottleneck detection (Rust `dyn Trait`)
+- Browser extension analysis mode (scan `.xpi`/`.crx` files)
+
+### Testing
+
+- Expand test suite beyond current 2 unit tests
+- Add property-based testing (proptest/quickcheck)
+- Fuzzing integration for the parser
+- Regression test suite with real-world programs
+
+### CI/CD
+
+- GitHub Actions workflow for running panic-attack in CI
+- Pre-built binaries for common platforms
+- Baseline/suppression system for ignoring known issues
+
+---
+
 ## Timeline Summary
 
 | Version | Theme | Effort | Cumulative |

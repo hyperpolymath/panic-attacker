@@ -1,4 +1,4 @@
-# panic-attacker
+# panic-attack
 
 [![CI](https://github.com/hyperpolymath/panic-attacker/workflows/Rust%20CI/badge.svg)](https://github.com/hyperpolymath/panic-attacker/actions/workflows/rust-ci.yml)
 [![Security Audit](https://github.com/hyperpolymath/panic-attacker/workflows/Security%20Audit/badge.svg)](https://github.com/hyperpolymath/panic-attacker/actions/workflows/cargo-audit.yml)
@@ -11,9 +11,9 @@ Universal stress testing and logic-based bug signature detection tool.
 
 ## Overview
 
-`panic-attacker` is a comprehensive program testing tool that combines:
+`panic-attack` is a comprehensive program testing tool that combines:
 
-1. **X-Ray Static Analysis**: Pre-analyzes programs to identify weak points across 5 languages
+1. **Assail Static Analysis**: Pre-analyzes programs to identify weak points across 5 languages
 2. **Multi-Axis Stress Testing**: Attacks programs across 6 different dimensions
 3. **Logic-Based Bug Detection**: Uses Datalog-inspired rules to detect bug signatures
 
@@ -28,7 +28,7 @@ Universal stress testing and logic-based bug signature detection tool.
 - **Pattern library wired**: Language/framework-specific attack selection
 - **Zero compiler warnings**: Clean builds, quality code
 
-### X-Ray Analysis
+### Assail Analysis
 
 Static analysis that detects:
 - ✅ Language and framework identification (Rust, C/C++, Go, Python, generic)
@@ -71,7 +71,7 @@ Logic programming-based detection (inspired by Mozart/Oz and Datalog) for:
 
 ```bash
 git clone https://github.com/hyperpolymath/panic-attacker.git
-cd panic-attacker
+cd panic-attack
 cargo build --release
 cargo install --path .
 ```
@@ -85,36 +85,36 @@ cargo install --path .
 
 ```bash
 # Analyze a program
-panic-attacker xray ./target/release/my-program --verbose
+panic-attack assail ./target/release/my-program --verbose
 
-# Full assault (X-Ray + multi-axis attacks)
-panic-attacker assault ./target/release/my-program
+# Full assault (assail + multi-axis attacks)
+panic-attack assault ./target/release/my-program
 
 # Single attack
-panic-attacker attack ./target/release/my-program --axis memory --intensity heavy
+panic-attack attack ./target/release/my-program --axis memory --intensity heavy
 ```
 
 ## Usage
 
-### X-Ray Analysis
+### Assail Analysis
 
 Analyze a program to identify weak points:
 
 ```bash
 # Basic analysis
-panic-attacker xray ./target/release/my-program
+panic-attack assail ./target/release/my-program
 
 # Verbose with per-file breakdown
-panic-attacker xray /path/to/project --verbose
+panic-attack assail /path/to/project --verbose
 
 # Save report to JSON
-panic-attacker xray ./my-program --output xray-report.json
+panic-attack assail ./my-program --output assail-report.json
 ```
 
 **Example output:**
 
 ```
-X-Ray Analysis Complete
+Assail Analysis Complete
   Language: Rust
   Frameworks: [WebServer, Database]
   Weak Points: 15
@@ -132,28 +132,28 @@ Execute a single attack on a specific axis:
 
 ```bash
 # CPU stress test
-panic-attacker attack ./my-program --axis cpu --intensity medium --duration 60
+panic-attack attack ./my-program --axis cpu --intensity medium --duration 60
 
 # Memory exhaustion
-panic-attacker attack ./my-program --axis memory --intensity heavy --duration 30
+panic-attack attack ./my-program --axis memory --intensity heavy --duration 30
 
 # Concurrency storm
-panic-attacker attack ./my-program --axis concurrency --intensity extreme --duration 120
+panic-attack attack ./my-program --axis concurrency --intensity extreme --duration 120
 ```
 
 ### Full Assault
 
-Run X-Ray analysis followed by multi-axis attacks:
+Run assail analysis followed by multi-axis attacks:
 
 ```bash
 # Full assault with all axes
-panic-attacker assault ./my-program
+panic-attack assault ./my-program
 
 # Custom axes only
-panic-attacker assault ./my-program --axes cpu,memory,concurrency
+panic-attack assault ./my-program --axes cpu,memory,concurrency
 
 # With output report
-panic-attacker assault ./my-program --output assault-report.json --intensity heavy
+panic-attack assault ./my-program --output assault-report.json --intensity heavy
 ```
 
 ### Analyze Crash Reports
@@ -161,15 +161,15 @@ panic-attacker assault ./my-program --output assault-report.json --intensity hea
 Detect bug signatures from existing crash reports:
 
 ```bash
-panic-attacker analyze crash-report.json
+panic-attack analyze crash-report.json
 ```
 
 ## Example Output
 
 ```
-=== PANIC-ATTACKER ASSAULT REPORT ===
+=== PANIC-ATTACK ASSAULT REPORT ===
 
-X-RAY ANALYSIS
+ASSAIL ANALYSIS
   Program: ./target/release/my-server
   Language: Rust
   Frameworks: [WebServer, Database]
@@ -216,7 +216,7 @@ OVERALL ASSESSMENT
 ### Core Components
 
 ```
-panic-attacker/
+panic-attack/
 ├── src/
 │   ├── main.rs           # CLI interface
 │   ├── lib.rs            # Library interface
@@ -324,12 +324,12 @@ SPDX-License-Identifier: PMPL-1.0-or-later
 
 ## Citation
 
-If you use panic-attacker in your research, please cite:
+If you use panic-attack in your research, please cite:
 
 ```bibtex
-@software{panic_attacker,
+@software{panic_attack,
   author = {Jewell, Jonathan D.A.},
-  title = {panic-attacker: Universal Stress Testing and Logic-Based Bug Detection},
+  title = {panic-attack: Universal Stress Testing and Logic-Based Bug Detection},
   year = {2026},
   url = {https://github.com/hyperpolymath/panic-attacker},
   version = {0.2.0}
