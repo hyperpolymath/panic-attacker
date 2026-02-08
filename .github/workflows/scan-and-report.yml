@@ -33,7 +33,7 @@ jobs:
       - name: Run scan
         id: scan
         run: |
-          panic-attack assail ${{ inputs.repo_path }} --format json --output scan-result.json
+          panic-attack assail ${{ inputs.repo_path }} --output scan-result.json
           echo "scan_complete=true" >> $GITHUB_OUTPUT
 
       - name: Send to verisimdb-data
