@@ -7,10 +7,11 @@
 //! Mozart/Oz and Datalog.
 
 mod attack;
+mod kanren;
 mod report;
 mod signatures;
 mod types;
-mod xray;
+mod assail;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -20,7 +21,7 @@ use types::*;
 
 #[derive(Parser)]
 #[command(name = "panic-attack")]
-#[command(version = "1.0.1")]
+#[command(version = "2.0.0")]
 #[command(about = "Universal stress testing and logic-based bug signature detection")]
 #[command(long_about = None)]
 struct Cli {
@@ -150,9 +151,9 @@ fn main() -> Result<()> {
             println!("Running assail analysis on: {}", target.display());
 
             let report = if verbose {
-                xray::analyze_verbose(&target)?
+                assail::analyze_verbose(&target)?
             } else {
-                xray::analyze(&target)?
+                assail::analyze(&target)?
             };
 
             if let Some(output_path) = output {
@@ -224,7 +225,7 @@ fn main() -> Result<()> {
 
             // First, run assail analysis
             println!("\nPhase 1: Assail Analysis");
-            let xray_report = xray::analyze_verbose(&program)?;
+            let assail_report = assail::analyze_verbose(&program)?;
 
             // Then, execute attacks
             println!("\nPhase 2: Attack Execution");
@@ -245,13 +246,13 @@ fn main() -> Result<()> {
 
             let attack_results = attack::execute_attack_with_patterns(
                 config,
-                xray_report.language,
-                &xray_report.frameworks,
+                assail_report.language,
+                &assail_report.frameworks,
             )?;
 
             // Generate comprehensive report
             println!("\nPhase 3: Report Generation");
-            let assault_report = report::generate_assault_report(xray_report, attack_results)?;
+            let assault_report = report::generate_assault_report(assail_report, attack_results)?;
 
             // Print report
             report::print_report(&assault_report);

@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
 
 //! Core type definitions for panic-attack
+//!
+//! Supports 40+ programming languages across systems, functional,
+//! BEAM, ML, proof assistants, logic programming, config, scripting,
+//! and custom DSL families.
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -10,6 +14,7 @@ use std::time::Duration;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Language {
+    // === Original languages ===
     Rust,
     C,
     Cpp,
@@ -18,6 +23,66 @@ pub enum Language {
     Python,
     JavaScript,
     Ruby,
+
+    // === BEAM family ===
+    Elixir,
+    Erlang,
+    Gleam,
+
+    // === ML family ===
+    ReScript,
+    OCaml,
+    StandardML,
+
+    // === Lisp family ===
+    Scheme,
+    Racket,
+
+    // === Functional ===
+    Haskell,
+    PureScript,
+
+    // === Proof assistants ===
+    Idris,
+    Lean,
+    Agda,
+
+    // === Logic programming ===
+    Prolog,
+    Logtalk,
+    Datalog,
+
+    // === Systems languages ===
+    Zig,
+    Ada,
+    Odin,
+    Nim,
+    Pony,
+    DLang,
+
+    // === Config languages ===
+    Nickel,
+    Nix,
+
+    // === Scripting / data ===
+    Shell,
+    Julia,
+    Lua,
+
+    // === Nextgen custom DSLs ===
+    WokeLang,
+    Eclexia,
+    MyLang,
+    JuliaTheViper,
+    Oblibeny,
+    Anvomidav,
+    AffineScript,
+    Ephapax,
+    BetLang,
+    ErrorLang,
+    VQL,
+    FBQL,
+
     Unknown,
 }
 
@@ -29,15 +94,107 @@ impl Language {
             .unwrap_or("");
 
         match ext {
+            // Original languages
             "rs" => Language::Rust,
             "c" | "h" => Language::C,
-            "cpp" | "cc" | "cxx" | "hpp" => Language::Cpp,
+            "cpp" | "cc" | "cxx" | "hpp" | "hxx" => Language::Cpp,
             "go" => Language::Go,
             "java" => Language::Java,
-            "py" => Language::Python,
-            "js" | "ts" => Language::JavaScript,
+            "py" | "pyw" => Language::Python,
+            "js" | "mjs" | "cjs" => Language::JavaScript,
+            "ts" | "tsx" | "jsx" => Language::JavaScript,
             "rb" => Language::Ruby,
+
+            // BEAM family
+            "ex" | "exs" => Language::Elixir,
+            "erl" | "hrl" => Language::Erlang,
+            "gleam" => Language::Gleam,
+
+            // ML family
+            "res" | "resi" => Language::ReScript,
+            "ml" | "mli" => Language::OCaml,
+            "sml" | "sig" | "fun" => Language::StandardML,
+
+            // Lisp family
+            "scm" | "ss" | "sld" => Language::Scheme,
+            "rkt" | "scrbl" => Language::Racket,
+
+            // Functional
+            "hs" | "lhs" => Language::Haskell,
+            "purs" => Language::PureScript,
+
+            // Proof assistants
+            "idr" | "ipkg" => Language::Idris,
+            "lean" => Language::Lean,
+            "agda" | "lagda" => Language::Agda,
+
+            // Logic programming
+            "pl" | "pro" | "P" => Language::Prolog,
+            "lgt" | "logtalk" => Language::Logtalk,
+            "dl" => Language::Datalog,
+
+            // Systems languages
+            "zig" => Language::Zig,
+            "adb" | "ads" | "gpr" => Language::Ada,
+            "odin" => Language::Odin,
+            "nim" | "nims" | "nimble" => Language::Nim,
+            "pony" => Language::Pony,
+            "d" | "di" => Language::DLang,
+
+            // Config languages
+            "ncl" => Language::Nickel,
+            "nix" => Language::Nix,
+
+            // Scripting / data
+            "sh" | "bash" | "zsh" | "fish" => Language::Shell,
+            "jl" => Language::Julia,
+            "lua" | "luau" => Language::Lua,
+
+            // Nextgen custom DSLs
+            "woke" => Language::WokeLang,
+            "ecl" => Language::Eclexia,
+            "my" | "solo" | "duet" | "ensemble" => Language::MyLang,
+            "jtv" => Language::JuliaTheViper,
+            "obli" => Language::Oblibeny,
+            "anvom" => Language::Anvomidav,
+            "aff" => Language::AffineScript,
+            "ephapax" | "eph" => Language::Ephapax,
+            "bet" => Language::BetLang,
+            "err" => Language::ErrorLang,
+            "vql" => Language::VQL,
+            "fbql" => Language::FBQL,
+
             _ => Language::Unknown,
+        }
+    }
+
+    /// Language family for grouping related languages in analysis
+    pub fn family(&self) -> &'static str {
+        match self {
+            Language::Elixir | Language::Erlang | Language::Gleam => "beam",
+            Language::ReScript | Language::OCaml | Language::StandardML => "ml",
+            Language::Scheme | Language::Racket => "lisp",
+            Language::Haskell | Language::PureScript => "functional",
+            Language::Idris | Language::Lean | Language::Agda => "proof",
+            Language::Prolog | Language::Logtalk | Language::Datalog => "logic",
+            Language::Zig | Language::Ada | Language::Odin
+            | Language::Nim | Language::Pony | Language::DLang => "systems",
+            Language::Nickel | Language::Nix => "config",
+            Language::Shell => "shell",
+            Language::Julia => "julia",
+            Language::Lua => "lua",
+            Language::Rust => "rust",
+            Language::C | Language::Cpp => "c-family",
+            Language::Go => "go",
+            Language::Java => "java",
+            Language::Python => "python",
+            Language::JavaScript => "javascript",
+            Language::Ruby => "ruby",
+            Language::WokeLang | Language::Eclexia | Language::MyLang
+            | Language::JuliaTheViper | Language::Oblibeny | Language::Anvomidav
+            | Language::AffineScript | Language::Ephapax | Language::BetLang
+            | Language::ErrorLang | Language::VQL | Language::FBQL => "nextgen-dsl",
+            Language::Unknown => "unknown",
         }
     }
 }
@@ -52,6 +209,11 @@ pub enum Framework {
     FileSystem,
     Networking,
     Concurrent,
+    // New frameworks for expanded language support
+    Phoenix,
+    Ecto,
+    OTP,
+    Cowboy,
     Unknown,
 }
 
@@ -92,6 +254,7 @@ pub struct WeakPoint {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum WeakPointCategory {
+    // Original categories
     UncheckedAllocation,
     UnboundedLoop,
     BlockingIO,
@@ -100,6 +263,19 @@ pub enum WeakPointCategory {
     RaceCondition,
     DeadlockPotential,
     ResourceLeak,
+    // New categories from expanded analysis
+    CommandInjection,
+    UnsafeDeserialization,
+    DynamicCodeExecution,
+    UnsafeFFI,
+    AtomExhaustion,
+    InsecureProtocol,
+    ExcessivePermissions,
+    PathTraversal,
+    HardcodedSecret,
+    UncheckedError,
+    InfiniteRecursion,
+    UnsafeTypeCoercion,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -143,7 +319,7 @@ pub enum SignatureType {
     UnhandledError,
 }
 
-/// Per-file statistics from X-Ray analysis
+/// Per-file statistics from Assail analysis
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileStatistics {
     pub file_path: String,
@@ -156,9 +332,9 @@ pub struct FileStatistics {
     pub threading_constructs: usize,
 }
 
-/// X-Ray analysis results
+/// Assail analysis results
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct XRayReport {
+pub struct AssailReport {
     pub program_path: PathBuf,
     pub language: Language,
     pub frameworks: Vec<Framework>,
@@ -234,7 +410,7 @@ pub struct CrashReport {
 /// Complete assault report
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AssaultReport {
-    pub xray_report: XRayReport,
+    pub assail_report: AssailReport,
     pub attack_results: Vec<AttackResult>,
     pub total_crashes: usize,
     pub total_signatures: usize,

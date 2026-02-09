@@ -14,7 +14,7 @@ impl ReportGenerator {
 
     pub fn generate(
         &self,
-        xray_report: XRayReport,
+        assail_report: AssailReport,
         attack_results: Vec<AttackResult>,
     ) -> Result<AssaultReport> {
         let total_crashes = attack_results.iter().map(|r| r.crashes.len()).sum();
@@ -24,10 +24,10 @@ impl ReportGenerator {
             .map(|r| r.signatures_detected.len())
             .sum();
 
-        let overall_assessment = self.assess_results(&xray_report, &attack_results);
+        let overall_assessment = self.assess_results(&assail_report, &attack_results);
 
         Ok(AssaultReport {
-            xray_report,
+            assail_report,
             attack_results,
             total_crashes,
             total_signatures,
@@ -35,7 +35,7 @@ impl ReportGenerator {
         })
     }
 
-    fn assess_results(&self, xray: &XRayReport, results: &[AttackResult]) -> OverallAssessment {
+    fn assess_results(&self, scan: &AssailReport, results: &[AttackResult]) -> OverallAssessment {
         let mut critical_issues = Vec::new();
         let mut recommendations = Vec::new();
 
@@ -50,13 +50,13 @@ impl ReportGenerator {
         // - Subtract 5 points for unsafe code
         let mut score = 100.0;
         score -= crash_count * 10.0;
-        score -= xray
+        score -= scan
             .weak_points
             .iter()
             .filter(|w| w.severity == Severity::Critical)
             .count() as f64
             * 20.0;
-        score -= (xray.statistics.unsafe_blocks as f64) * 5.0;
+        score -= (scan.statistics.unsafe_blocks as f64) * 5.0;
 
         score = score.clamp(0.0, 100.0);
 
@@ -85,11 +85,11 @@ impl ReportGenerator {
             recommendations.push("Add comprehensive error handling for edge cases".to_string());
         }
 
-        if xray.statistics.unwrap_calls > 10 {
+        if scan.statistics.unwrap_calls > 10 {
             recommendations.push("Replace unwrap() calls with proper error handling".to_string());
         }
 
-        if xray.statistics.unsafe_blocks > 0 {
+        if scan.statistics.unsafe_blocks > 0 {
             recommendations.push("Audit unsafe blocks for memory safety violations".to_string());
         }
 

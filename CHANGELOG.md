@@ -28,7 +28,7 @@
   - Stable JSON schema (v1.0, documented, versioned)
 - **Testing**:
   - 21 unit tests covering all analyzers
-  - 3 integration tests (X-Ray pipeline, vulnerable programs)
+  - 3 integration tests (Assail pipeline, vulnerable programs)
   - 3 regression tests (echidna, eclexia, self-test baselines)
   - Code coverage reporting with codecov
 - **Configuration**:
@@ -62,7 +62,7 @@
 
 ### Removed
 - **Dead code warnings**: Suppressed with `#[allow(dead_code)]` on 4 items reserved for v0.5 Datalog engine
-- **Unused Context import**: Removed from `xray/analyzer.rs`
+- **Unused Context import**: Removed from `assail/analyzer.rs`
 - **Stale chrono import**: Removed duplicate from `attack/executor.rs` (already in Cargo.toml)
 
 ### Verification
@@ -73,4 +73,4 @@
 
 ## [0.1.0] - 2026-02-06
 
-Initial proof-of-concept release with X-Ray static analysis, multi-axis stress testing, and logic-based bug signature detection.
+Initial proof-of-concept release with Assail static analysis, multi-axis stress testing, and logic-based bug signature detection.

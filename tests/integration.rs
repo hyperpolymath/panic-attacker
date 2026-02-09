@@ -2,14 +2,14 @@
 
 //! Integration tests for panic-attacker v0.2
 
-use panic_attacker::types::*;
-use panic_attacker::xray;
+use panic_attack::types::*;
+use panic_attack::assail;
 use std::path::Path;
 
 #[test]
-fn test_xray_vulnerable_program() {
+fn test_assail_vulnerable_program() {
     let example = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/vulnerable_program.rs");
-    let report = xray::analyze(&example).expect("analysis should succeed");
+    let report = assail::analyze(&example).expect("analysis should succeed");
 
     // Should detect the language
     assert_eq!(report.language, Language::Rust);
@@ -44,9 +44,9 @@ fn test_xray_vulnerable_program() {
 }
 
 #[test]
-fn test_xray_no_duplicates() {
+fn test_assail_no_duplicates() {
     let examples_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples");
-    let report = xray::analyze(&examples_dir).expect("analysis should succeed");
+    let report = assail::analyze(&examples_dir).expect("analysis should succeed");
 
     // Check no duplicate (category, location) pairs
     let mut seen = std::collections::HashSet::new();
@@ -62,9 +62,9 @@ fn test_xray_no_duplicates() {
 }
 
 #[test]
-fn test_xray_per_file_stats() {
+fn test_assail_per_file_stats() {
     let example = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/vulnerable_program.rs");
-    let report = xray::analyze(&example).expect("analysis should succeed");
+    let report = assail::analyze(&example).expect("analysis should succeed");
 
     // file_statistics should be populated for a file with findings
     assert!(

@@ -2,7 +2,7 @@
 
 Version: 1.0 (stable as of v1.0.0)
 
-## XRayReport
+## AssailReport
 
 ```json
 {
@@ -61,7 +61,7 @@ Version: 1.0 (stable as of v1.0.0)
 
 ```json
 {
-  "xray_report": XRayReport,
+  "assail_report": AssailReport,
   "attack_results": [AttackResult],
   "total_crashes": "number",
   "total_signatures": "number",
@@ -120,7 +120,7 @@ Version: 1.0 (stable as of v1.0.0)
 ## Version Compatibility
 
 - **v0.1.0**: Initial schema (unstable)
-- **v0.2.0**: Added `file_statistics` field to XRayReport, all locations guaranteed non-null
+- **v0.2.0**: Added `file_statistics` field to AssailReport, all locations guaranteed non-null
 - **v1.0.0**: Schema stabilized, backwards-compatible changes only from here
 - **Future**: New fields may be added, but existing fields will not change type or be removed
 
@@ -131,7 +131,7 @@ Version: 1.0 (stable as of v1.0.0)
 ```python
 import json
 
-with open("xray-report.json") as f:
+with open("assail-report.json") as f:
     report = json.load(f)
 
 for wp in report["weak_points"]:
@@ -141,10 +141,10 @@ for wp in report["weak_points"]:
 ### Rust
 
 ```rust
-use panic_attacker::types::XRayReport;
+use panic_attacker::types::AssailReport;
 
-let json = std::fs::read_to_string("xray-report.json")?;
-let report: XRayReport = serde_json::from_str(&json)?;
+let json = std::fs::read_to_string("assail-report.json")?;
+let report: AssailReport = serde_json::from_str(&json)?;
 
 for wp in &report.weak_points {
     println!("{:?}: {} @ {:?}", wp.severity, wp.description, wp.location);
@@ -156,7 +156,7 @@ for wp in &report.weak_points {
 ```typescript
 import * as fs from 'fs';
 
-const report = JSON.parse(fs.readFileSync('xray-report.json', 'utf8'));
+const report = JSON.parse(fs.readFileSync('assail-report.json', 'utf8'));
 
 report.weak_points.forEach((wp: any) => {
   console.log(`${wp.severity}: ${wp.description} @ ${wp.location}`);

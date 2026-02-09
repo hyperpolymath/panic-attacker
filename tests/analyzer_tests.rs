@@ -2,8 +2,8 @@
 
 //! Unit tests for language-specific analyzers
 
-use panic_attacker::types::*;
-use panic_attacker::xray;
+use panic_attack::types::*;
+use panic_attack::assail;
 use std::fs;
 use tempfile::TempDir;
 
@@ -25,7 +25,7 @@ fn main() {
 }
 "#;
     let file = create_test_file(&dir, "test.rs", content);
-    let report = xray::analyze(&file).expect("analysis should succeed");
+    let report = assail::analyze(&file).expect("analysis should succeed");
 
     assert_eq!(report.language, Language::Rust);
     assert!(report.statistics.unsafe_blocks >= 2);
@@ -43,7 +43,7 @@ fn main() {
 }
 "#;
     let file = create_test_file(&dir, "test.rs", content);
-    let report = xray::analyze(&file).expect("analysis should succeed");
+    let report = assail::analyze(&file).expect("analysis should succeed");
 
     assert!(report.statistics.unwrap_calls >= 3);
 }
@@ -58,7 +58,7 @@ fn main() {
 }
 "#;
     let file = create_test_file(&dir, "test.rs", content);
-    let report = xray::analyze(&file).expect("analysis should succeed");
+    let report = assail::analyze(&file).expect("analysis should succeed");
 
     assert!(report.statistics.panic_sites >= 2);
 }
@@ -76,7 +76,7 @@ int main() {
 }
 "#;
     let file = create_test_file(&dir, "test.c", content);
-    let report = xray::analyze(&file).expect("analysis should succeed");
+    let report = assail::analyze(&file).expect("analysis should succeed");
 
     assert_eq!(report.language, Language::C);
     assert!(report.statistics.allocation_sites >= 2);
@@ -94,7 +94,7 @@ int main() {
 }
 "#;
     let file = create_test_file(&dir, "test.c", content);
-    let report = xray::analyze(&file).expect("analysis should succeed");
+    let report = assail::analyze(&file).expect("analysis should succeed");
 
     let unchecked = report
         .weak_points
@@ -116,7 +116,7 @@ func main() {
 }
 "#;
     let file = create_test_file(&dir, "test.go", content);
-    let report = xray::analyze(&file).expect("analysis should succeed");
+    let report = assail::analyze(&file).expect("analysis should succeed");
 
     assert_eq!(report.language, Language::Go);
     assert!(report.statistics.threading_constructs >= 3);
@@ -131,7 +131,7 @@ def main():
         process()
 "#;
     let file = create_test_file(&dir, "test.py", content);
-    let report = xray::analyze(&file).expect("analysis should succeed");
+    let report = assail::analyze(&file).expect("analysis should succeed");
 
     assert_eq!(report.language, Language::Python);
     let unbounded = report
@@ -156,7 +156,7 @@ function main() {
 
     // Generic analyzer should still work, but language will be Unknown
     // and we just check it doesn't crash
-    let _ = xray::analyze(&file);
+    let _ = assail::analyze(&file);
 }
 
 #[test]
@@ -170,7 +170,7 @@ fn main() {
 }
 "#;
     let file = create_test_file(&dir, "server.rs", content);
-    let report = xray::analyze(&file).expect("analysis should succeed");
+    let report = assail::analyze(&file).expect("analysis should succeed");
 
     assert!(report.frameworks.contains(&Framework::WebServer));
 }
@@ -186,7 +186,7 @@ fn main() {
 }
 "#;
     let file = create_test_file(&dir, "db.rs", content);
-    let report = xray::analyze(&file).expect("analysis should succeed");
+    let report = assail::analyze(&file).expect("analysis should succeed");
 
     assert!(report.frameworks.contains(&Framework::Database));
 }
@@ -201,7 +201,7 @@ fn main() {
 }
 "#;
     let file = create_test_file(&dir, "test.rs", content);
-    let report = xray::analyze(&file).expect("analysis should succeed");
+    let report = assail::analyze(&file).expect("analysis should succeed");
 
     assert!(
         !report.file_statistics.is_empty(),

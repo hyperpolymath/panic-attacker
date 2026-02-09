@@ -5,7 +5,7 @@
 use crate::attack::strategies::*;
 use crate::signatures::SignatureEngine;
 use crate::types::*;
-use crate::xray::patterns::PatternDetector;
+use crate::assail::patterns::PatternDetector;
 use anyhow::{Context, Result};
 use std::process::{Command, Stdio};
 use std::time::Instant;

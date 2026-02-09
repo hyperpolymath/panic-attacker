@@ -14,11 +14,11 @@ pub use generator::ReportGenerator;
 
 /// Generate a comprehensive assault report
 pub fn generate_assault_report(
-    xray_report: XRayReport,
+    assail_report: AssailReport,
     attack_results: Vec<AttackResult>,
 ) -> Result<AssaultReport> {
     let generator = ReportGenerator::new();
-    generator.generate(xray_report, attack_results)
+    generator.generate(assail_report, attack_results)
 }
 
 /// Save report to file

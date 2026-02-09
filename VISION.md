@@ -31,7 +31,7 @@ problem caused it?"
 
 ## Core Ideas (Expanded)
 
-### 1. The X-Ray (Pre-Attack Analysis)
+### 1. The Assail (Pre-Attack Analysis)
 
 You can learn a lot about a program's vulnerabilities without running it.
 Just knowing what language it's written in tells you what classes of bugs
@@ -43,7 +43,7 @@ to look for:
 - **Gleam/Elixir**: Process mailbox overflow, GenServer bottlenecks
 - **Any program**: Recursion depth, file I/O, network calls, concurrency
 
-The X-Ray builds a **vulnerability profile** before any attack begins,
+The Assail builds a **vulnerability profile** before any attack begins,
 allowing targeted testing instead of blind brute force.
 
 ### 2. Attack Axes (Controllable Dimensions)
@@ -207,7 +207,7 @@ Every panic-attacker run generates labelled training data. Over time:
 ## Product Boundaries: One Tool or Many?
 
 ### Definitely panic-attacker (this repo)
-- X-Ray static analysis
+- Assail static analysis
 - Multi-axis attack execution
 - Signature detection (Datalog-style)
 - Pattern library
@@ -227,7 +227,7 @@ Every panic-attacker run generates labelled training data. Over time:
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                panic-attacker (core)                     │
-│  X-Ray │ Attack │ Signatures │ Profiles │ Reports       │
+│  Assail │ Attack │ Signatures │ Profiles │ Reports       │
 └────┬────────┬────────┬────────────┬──────────┬──────────┘
      │        │        │            │          │
      ▼        │        ▼            │          ▼

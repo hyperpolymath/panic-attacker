@@ -7,38 +7,39 @@
   (metadata
     (version "1.0")
     (project "panic-attack")
-    (last-updated "2026-02-08T14:00:00Z")
-    (session-count 4))
+    (last-updated "2026-02-08T22:00:00Z")
+    (session-count 5))
 
   (project-context
     (name "panic-attack")
     (tagline "Universal static analysis and logic-based bug signature detection")
     (language "Rust")
     (type "CLI tool + library")
-    (purpose "Multi-axis stress testing with Datalog-inspired bug signature detection")
-    (current-version "1.0.1")
-    (next-milestone "v1.1.0")
-    (lines-of-code 3200))
+    (purpose "Multi-language static analysis with miniKanren-inspired logic engine for taint analysis, cross-language reasoning, and search strategies")
+    (current-version "2.0.0")
+    (next-milestone "v2.1.0")
+    (lines-of-code 7500))
 
   (naming
     (note "Renamed from panic-attacker on 2026-02-08")
     (binary "panic-attack")
     (crate "panic-attack")
-    (subcommand "assail (formerly xray)")
-    (report-header "ASSAIL (formerly X-RAY)"))
+    (subcommand "assail")
+    (report-type "AssailReport")
+    (module-dir "src/assail/"))
 
   (current-position
-    (phase "post-rename-stabilisation")
-    (milestone "v1.1.0")
-    (completion-percentage 50)
-    (status "active")
+    (phase "active-development")
+    (milestone "v2.0.0")
+    (completion-percentage 100)
+    (status "released")
     (health "green")
 
     (completed-milestones
       (milestone
         (id "v0.1.0")
         (date "2026-02-06")
-        (description "Proof-of-concept: X-Ray + 6-axis attacks + signature detection"))
+        (description "Proof-of-concept: assail + 6-axis attacks + signature detection"))
       (milestone
         (id "v0.2.0")
         (date "2026-02-07")
@@ -46,25 +47,32 @@
       (milestone
         (id "v1.0.0")
         (date "2026-02-08")
-        (description "Rename: xray→assail, panic-attacker→panic-attack"))
+        (description "Rename: xray->assail, panic-attacker->panic-attack"))
       (milestone
         (id "v1.0.1")
         (date "2026-02-08")
-        (description "Bugfix: JSON output confirmed working, installed to PATH")))
+        (description "Bugfix: JSON output confirmed working, installed to PATH"))
+      (milestone
+        (id "v2.0.0")
+        (date "2026-02-08")
+        (description "47-language support + miniKanren logic engine + taint analysis + cross-language reasoning + search strategies")))
 
     (current-capabilities
-      "Assail static analysis (5 languages: Rust, C/C++, Go, Python, generic)"
+      "Assail static analysis (47 languages: BEAM, ML, Lisp, functional, proof, logic, systems, config, scripting, nextgen DSLs)"
+      "20 weak point categories (UnsafeCode, CommandInjection, UnsafeDeserialization, AtomExhaustion, UnsafeFFI, PathTraversal, HardcodedSecret, etc.)"
+      "miniKanren-inspired logic engine with substitution-based unification"
+      "Taint analysis: source-to-sink data flow tracking"
+      "Cross-language vulnerability chain detection (FFI, NIF, Port, subprocess boundaries)"
+      "Search strategy optimisation (RiskWeighted, BoundaryFirst, LanguageFamily, BreadthFirst, DepthFirst)"
+      "Forward chaining: derives vulnerability facts from rules"
+      "Backward queries: find files by vulnerability category"
       "6-axis stress testing (CPU, memory, disk, network, concurrency, time)"
-      "Logic-based bug detection (use-after-free, double-free, deadlock, data-race, null-deref, buffer-overflow)"
-      "Pattern library (language/framework-specific attacks)"
-      "Per-file statistics and risk scoring"
-      "Verbose mode with per-file breakdown"
-      "Latin-1 fallback for non-UTF-8 files"
-      "JSON and terminal output"
-      "Self-test mode (assail self-test)"))
+      "Logic-based bug detection (use-after-free, double-free, deadlock, data-race)"
+      "Per-file language detection and risk scoring"
+      "JSON and terminal output"))
 
   (route-to-mvp
-    (target "v1.1.0: Bulk scanning + verisimdb integration")
+    (target "v2.1.0: Bulk scanning + verisimdb integration")
     (strategy "Add sweep subcommand for directory-of-repos scanning, push results to verisimdb")
 
     (milestones
@@ -84,65 +92,60 @@
         (priority "high")
         (tasks
           "Feed scan results to hypatia rule engine"
-          "Support echidnabot proof verification"
-          "Support sustainabot ecological scoring"))
+          "Export kanren facts as Logtalk predicates"
+          "Support echidnabot proof verification"))
 
       (milestone
-        (id "rsr-compliance")
-        (status "in-progress")
-        (priority "high")
-        (tasks
-          "17 standard workflows"
-          "Rust-specific workflows (ci, audit, clippy, fmt)"
-          "SARIF output for GitHub Security tab"))
-
-      (milestone
-        (id "documentation")
+        (id "sarif-output")
         (status "planned")
         (priority "medium")
         (tasks
-          "SECURITY.md with vulnerability reporting"
-          "CONTRIBUTING.md with development guide"
-          "API documentation (rustdoc)"
-          "Shell completions (bash, zsh, fish)"))))
+          "SARIF output for GitHub Security tab"
+          "Integration with CodeQL workflow"))))
 
-  (blockers-and-issues
-    (issue
-      (id "rename-commit")
-      (severity "medium")
-      (description "Rename changes uncommitted - needs commit")))
+  (blockers-and-issues)
 
   (critical-next-actions
     (action
       (priority "1")
-      (description "Commit rename changes (xray→assail, panic-attacker→panic-attack)")
-      (estimated-effort "5 minutes"))
-    (action
-      (priority "2")
       (description "Add sweep subcommand for bulk directory scanning")
       (estimated-effort "2-3 hours"))
     (action
-      (priority "3")
+      (priority "2")
       (description "Add verisimdb integration for results storage")
       (estimated-effort "1-2 hours"))
     (action
-      (priority "4")
-      (description "Complete RSR compliance (workflows, docs)")
-      (estimated-effort "2-3 hours")))
+      (priority "3")
+      (description "Export kanren facts as Logtalk for hypatia integration")
+      (estimated-effort "1-2 hours")))
 
   (session-history
+    (session
+      (id "5")
+      (date "2026-02-08")
+      (duration "3h")
+      (focus "v2.0.0: 47-language support + miniKanren logic engine")
+      (outcomes
+        "Expanded from 8 to 47 languages"
+        "Added 20 weak point categories"
+        "Implemented miniKanren-inspired logic engine (kanren module)"
+        "Added taint analysis: source->sink tracking"
+        "Added cross-language vulnerability chain detection"
+        "Added search strategy optimisation (auto-select)"
+        "Renamed xray module to assail throughout"
+        "Renamed XRayReport type to AssailReport"
+        "All 30 tests passing"
+        "Updated all documentation"))
+
     (session
       (id "4")
       (date "2026-02-08")
       (duration "1h")
       (focus "Rename + bulk scanning + system crash diagnosis")
       (outcomes
-        "Renamed xray→assail, panic-attacker→panic-attack across all files"
+        "Renamed xray->assail, panic-attacker->panic-attack across all files"
         "Built v1.0.1, installed to PATH"
-        "Confirmed JSON output working (self-test)"
-        "Scanned 21 Eclipse repos, loaded results into verisimdb"
-        "Top findings: protocol-squisher (39 wp), echidna (15 wp), verisimdb (12 wp)"
-        "118 total weak points across 21 repos, zero critical, 17 high"))
+        "Scanned 21 Eclipse repos, loaded results into verisimdb"))
 
     (session
       (id "3")
@@ -152,6 +155,4 @@
       (outcomes
         "Implemented v0.2.0 (per-file stats, locations, Latin-1 fallback, patterns)"
         "Zero compiler warnings achieved"
-        "7/7 tests passing (3 new integration tests)"
-        "Created AI manifest and SCM files"
-        "Defined v1.0 infrastructure-first roadmap"))))
+        "Created AI manifest and SCM files"))))

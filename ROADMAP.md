@@ -8,11 +8,11 @@
 
 | Component | Status | Notes |
 |---|---|---|
-| X-Ray static analysis | Working | 5 language-specific analyzers |
+| Assail static analysis | Working | 5 language-specific analyzers |
 | Attack executor (6 axes) | Working | CPU, memory, disk, network, concurrency, time |
 | Signature detection | Working | Simplified (string matching, not real Datalog) |
 | Report generation | Working | Robustness scoring, coloured terminal output, JSON |
-| CLI (4 commands) | Working | xray, attack, assault, analyze |
+| CLI (4 commands) | Working | assail, attack, assault, analyze |
 | Pattern library | Defined but unused | Not wired into attack selection |
 | Tests | 2 unit tests | Effectively untested |
 | Constraint sets | Not started | — |
@@ -29,7 +29,7 @@
 
 **Theme: Make the existing output trustworthy**
 
-- [x] Fix X-Ray duplicate entries (running counts → per-file delta counts)
+- [x] Fix Assail duplicate entries (running counts → per-file delta counts)
 - [x] Add file paths to weak point `location` field (currently all `null`)
 - [x] Wire pattern library into attack selection (currently defined but unused)
 - [x] Connect `RuleSet` to signature engine (currently stored but ignored)
@@ -48,9 +48,9 @@
 
 **Theme: Trust the tool enough to use it on real code**
 
-- [x] Unit tests for X-Ray (each language analyzer: Rust, C/C++, Go, Python, generic)
+- [x] Unit tests for Assail (each language analyzer: Rust, C/C++, Go, Python, generic)
 - [x] Unit tests for signature engine (each inference rule)
-- [x] Integration tests: X-Ray → Attack → Signature pipeline
+- [x] Integration tests: Assail → Attack → Signature pipeline
 - [x] Test against example vulnerable program (panic, OOM, deadlock, race)
 - [x] Regression test: eclexia baseline (7 weak points, known profile)
 - [x] Regression test: echidna baseline (15 weak points, known profile)
@@ -69,7 +69,7 @@
 - [x] Comprehensive documentation (SECURITY.md, CONTRIBUTING.md, LICENSE)
 - [x] Enhanced README with badges and examples
 - [x] Comprehensive unit tests (20+ tests covering all analyzers)
-- [x] Integration tests (X-Ray pipeline, vulnerable programs)
+- [x] Integration tests (Assail pipeline, vulnerable programs)
 - [x] Regression tests (eclexia, echidna, self-test baselines)
 - [x] CI/CD with GitHub Actions (11 workflows)
 - [x] Code coverage reporting with codecov
@@ -81,7 +81,7 @@
 
 **Completed: 2026-02-07** (infrastructure-first path)
 
-**Status**: Production-ready for X-Ray analysis and basic stress testing.
+**Status**: Production-ready for Assail analysis and basic stress testing.
 Advanced features (constraint sets, real Datalog, multi-program) deferred to v1.x/v2.0.
 
 ---
@@ -212,7 +212,7 @@ vulnerability patterns and framework detection.
 - [ ] Exit codes that CI can act on (fail build if robustness < threshold)
 - [ ] SARIF output for GitHub Security tab integration
 - [ ] Baseline support (suppress known issues, alert on new ones)
-- [ ] Comparative reports (diff two X-Ray runs)
+- [ ] Comparative reports (diff two Assail runs)
 - [ ] Badge generation (robustness score badge for README)
 
 **Estimated: 1–2 weeks**
@@ -223,7 +223,7 @@ vulnerability patterns and framework detection.
 
 **Theme: Make it fast and reliable enough for production use**
 
-- [ ] Parallel X-Ray analysis (rayon for file scanning)
+- [ ] Parallel Assail analysis (rayon for file scanning)
 - [ ] Incremental analysis (only re-scan changed files)
 - [ ] Resource limits on panic-attacker itself (don't crash the host)
 - [ ] Graceful cleanup (kill child processes on SIGINT/SIGTERM)
@@ -247,7 +247,7 @@ vulnerability patterns and framework detection.
 - [ ] Reproducible builds
 - [ ] SBOM generation
 - [ ] Security audit of panic-attacker itself (eat your own dogfood)
-- [ ] X-Ray panic-attacker with panic-attacker (meta-test)
+- [ ] Assail panic-attacker with panic-attacker (meta-test)
 - [ ] Stable JSON output schema (versioned, documented)
 - [ ] Minimum supported Rust version (MSRV) policy
 
@@ -260,7 +260,7 @@ vulnerability patterns and framework detection.
 ### Naming/Branding (HIGH PRIORITY)
 
 - Rename tool from `panic-attacker` to `panic-attack` (cleaner, more direct)
-- Rename `xray` command to `assail` (better panic-attack metaphor; "hypervigilance" as alternative)
+- Rename `assail` command to `assail` (better panic-attack metaphor; "hypervigilance" as alternative)
 - Consider renaming `assault` to `overwhelm` or `barrage` to avoid confusion with `assail`
 - Update all CLI help text, README, and docs to reflect new names
 
@@ -280,7 +280,7 @@ vulnerability patterns and framework detection.
 
 ### Performance
 
-- Parallel xray scanning (currently sequential) using rayon
+- Parallel assail scanning (currently sequential) using rayon
 - Compiled regex patterns instead of `string contains()`
 - Incremental analysis with result caching
 - Memory-mapped file reading for large codebases

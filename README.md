@@ -221,7 +221,7 @@ panic-attack/
 │   ├── main.rs           # CLI interface
 │   ├── lib.rs            # Library interface
 │   ├── types.rs          # Core type definitions
-│   ├── xray/             # Static analysis
+│   ├── assail/           # Static analysis
 │   │   ├── analyzer.rs   # Language-specific analyzers
 │   │   └── patterns.rs   # Attack pattern library
 │   ├── attack/           # Attack orchestration

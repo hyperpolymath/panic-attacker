@@ -72,7 +72,7 @@ cargo test test_name
 ### Running Locally
 
 ```bash
-cargo run -- xray ./examples/vulnerable_program.rs --verbose
+cargo run -- assail ./examples/vulnerable_program.rs --verbose
 ```
 
 ## Coding Standards
@@ -140,7 +140,7 @@ panic-attacker/
 │   ├── main.rs          # CLI entry point
 │   ├── lib.rs           # Library interface
 │   ├── types.rs         # Core type definitions
-│   ├── xray/            # Static analysis
+│   ├── assail/            # Static analysis
 │   │   ├── analyzer.rs  # Language-specific analyzers
 │   │   └── patterns.rs  # Attack pattern library
 │   ├── attack/          # Attack execution

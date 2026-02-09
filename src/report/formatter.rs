@@ -22,7 +22,7 @@ impl ReportFormatter {
         );
         println!();
 
-        self.print_xray_summary(&report.xray_report);
+        self.print_assail_summary(&report.assail_report);
         println!();
 
         self.print_attack_summary(&report.attack_results);
@@ -35,29 +35,29 @@ impl ReportFormatter {
         println!();
     }
 
-    fn print_xray_summary(&self, xray: &XRayReport) {
+    fn print_assail_summary(&self, scan: &AssailReport) {
         println!("{}", "ASSAIL ANALYSIS".bold().yellow());
-        println!("  Program: {}", xray.program_path.display());
-        println!("  Language: {:?}", xray.language);
-        println!("  Frameworks: {:?}", xray.frameworks);
+        println!("  Program: {}", scan.program_path.display());
+        println!("  Language: {:?}", scan.language);
+        println!("  Frameworks: {:?}", scan.frameworks);
         println!();
 
         println!("  Statistics:");
-        println!("    Total lines: {}", xray.statistics.total_lines);
-        println!("    Unsafe blocks: {}", xray.statistics.unsafe_blocks);
-        println!("    Panic sites: {}", xray.statistics.panic_sites);
-        println!("    Unwrap calls: {}", xray.statistics.unwrap_calls);
-        println!("    Allocation sites: {}", xray.statistics.allocation_sites);
-        println!("    I/O operations: {}", xray.statistics.io_operations);
+        println!("    Total lines: {}", scan.statistics.total_lines);
+        println!("    Unsafe blocks: {}", scan.statistics.unsafe_blocks);
+        println!("    Panic sites: {}", scan.statistics.panic_sites);
+        println!("    Unwrap calls: {}", scan.statistics.unwrap_calls);
+        println!("    Allocation sites: {}", scan.statistics.allocation_sites);
+        println!("    I/O operations: {}", scan.statistics.io_operations);
         println!(
             "    Threading constructs: {}",
-            xray.statistics.threading_constructs
+            scan.statistics.threading_constructs
         );
         println!();
 
-        if !xray.weak_points.is_empty() {
-            println!("  Weak Points Detected: {}", xray.weak_points.len());
-            for (i, wp) in xray.weak_points.iter().enumerate() {
+        if !scan.weak_points.is_empty() {
+            println!("  Weak Points Detected: {}", scan.weak_points.len());
+            for (i, wp) in scan.weak_points.iter().enumerate() {
                 let severity_color = match wp.severity {
                     Severity::Critical => "red",
                     Severity::High => "yellow",
@@ -75,11 +75,11 @@ impl ReportFormatter {
         }
 
         // Per-file breakdown sorted by risk score
-        if !xray.file_statistics.is_empty() {
+        if !scan.file_statistics.is_empty() {
             println!();
             println!("  Per-file Breakdown (top 10 by risk):");
 
-            let mut scored: Vec<_> = xray
+            let mut scored: Vec<_> = scan
                 .file_statistics
                 .iter()
                 .map(|fs| {

@@ -11,7 +11,7 @@ Modern software testing often focuses on either:
 
 ## Core Concepts
 
-### 1. X-Ray Pre-Analysis
+### 1. Assail Pre-Analysis
 
 Before attacking a program, we need to understand its structure:
 
@@ -134,7 +134,7 @@ Different program types have different vulnerabilities:
 - Race condition triggering
 - Resource starvation
 
-The X-Ray analysis selects appropriate patterns based on detected frameworks.
+The Assail analysis selects appropriate patterns based on detected frameworks.
 
 ## Architecture
 
@@ -148,8 +148,8 @@ The X-Ray analysis selects appropriate patterns based on detected frameworks.
        │
        ▼
 ┌─────────────────┐
-│  X-Ray Analysis │  ← Static code inspection
-│  (xray/*)       │
+│  Assail Analysis │  ← Static code inspection
+│  (assail/*)       │
 └──────┬──────────┘
        │
        ▼
@@ -196,7 +196,7 @@ Key types:
 - `WeakPoint`, `BugSignature`: Analysis results
 - `Fact`, `Predicate`, `Rule`: Logic programming primitives
 
-#### `xray/`
+#### `assail/`
 Static analysis and pattern detection.
 
 - `analyzer.rs`: Core analysis engine
@@ -564,7 +564,7 @@ Over time, this enables:
 ## Product Boundaries
 
 ### Definitely panic-attacker (this repo)
-- X-Ray static analysis
+- Assail static analysis
 - Multi-axis attack execution
 - Signature detection (Datalog-style)
 - Pattern library
@@ -581,8 +581,8 @@ Over time, this enables:
 ## Roadmap
 
 ### v0.1 (Current) -- Foundation
-- [x] CLI with xray, attack, assault, analyze commands
-- [x] X-Ray static analysis
+- [x] CLI with assail, attack, assault, analyze commands
+- [x] Assail static analysis
 - [x] 6 attack axes
 - [x] Pattern-based signature detection
 - [x] Report generation with scoring

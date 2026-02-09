@@ -1,74 +1,95 @@
 ;; SPDX-License-Identifier: PMPL-1.0-or-later
-;; Ecosystem position for panic-attacker
+;; Ecosystem position for panic-attack (formerly panic-attacker)
 ;; Media Type: application/vnd.ecosystem+scm
 
 (ecosystem
   (version "1.0")
-  (name "panic-attacker")
+  (name "panic-attack")
   (type "tool")
-  (purpose "Universal stress testing and logic-based bug signature detection")
+  (purpose "Universal static analysis and logic-based bug signature detection for 47 languages")
 
   (position-in-ecosystem
     (layer "development-tools")
     (category "testing-quality")
-    (subcategory "stress-testing-analysis")
-    (maturity "beta")
+    (subcategory "static-analysis-stress-testing")
+    (maturity "stable")
     (adoption "internal"))
 
   (related-projects
     (project
+      (name "verisimdb")
+      (relationship "data-store")
+      (integration "panic-attack scan results stored as hexads in verisimdb")
+      (url "https://github.com/hyperpolymath/verisimdb")
+      (description "Verification-similarity database for code quality metrics"))
+
+    (project
+      (name "verisimdb-data")
+      (relationship "data-pipeline")
+      (integration "scan JSON ingested via ingest-scan.sh into verisimdb-data repo")
+      (url "https://github.com/hyperpolymath/verisimdb-data")
+      (description "Git-based data store for verisimdb scan results"))
+
+    (project
       (name "hypatia")
       (relationship "consumer")
-      (integration "uses panic-attacker for repository health assessment")
+      (integration "uses panic-attack for repository health assessment, VeriSimDB connector")
       (url "https://github.com/hyperpolymath/hypatia")
       (description "Neurosymbolic CI/CD intelligence"))
 
     (project
       (name "gitbot-fleet")
       (relationship "consumer")
-      (integration "bots can trigger panic-attacker scans")
+      (integration "bots can trigger panic-attack scans via repository_dispatch")
       (url "https://github.com/hyperpolymath/gitbot-fleet")
       (description "Repository automation bots (rhodibot, echidnabot, etc.)"))
 
     (project
-      (name "git-seo")
+      (name "ambientops")
       (relationship "sibling-tool")
-      (integration "complementary repository analysis")
-      (url "https://github.com/hyperpolymath/git-seo")
-      (description "Git repository analysis and optimization"))
+      (integration "hospital model: panic-attack is diagnostic tool, ambientops is operating room")
+      (url "https://github.com/hyperpolymath/ambientops")
+      (description "AmbientOps hospital model for software health"))
+
+    (project
+      (name "hardware-crash-team")
+      (relationship "sibling-tool")
+      (integration "panic-attack handles software diagnostics, hardware-crash-team handles hardware")
+      (url "https://github.com/hyperpolymath/hardware-crash-team")
+      (description "Hardware health diagnostics"))
 
     (project
       (name "echidna")
       (relationship "test-subject")
-      (integration "used as benchmark for panic-attacker testing")
+      (integration "used as benchmark for panic-attack testing (15 weak points)")
       (url "https://github.com/hyperpolymath/echidna")
       (description "Automated theorem proving orchestrator"))
 
     (project
       (name "eclexia")
       (relationship "test-subject")
-      (integration "used as benchmark for panic-attacker testing")
+      (integration "used as benchmark for panic-attack testing")
       (url "https://github.com/hyperpolymath/eclexia")
       (description "Resource-aware adaptive programming language"))
 
     (project
       (name "rsr-template-repo")
       (relationship "template-provider")
-      (integration "panic-attacker follows RSR standards")
+      (integration "panic-attack follows RSR standards")
       (url "https://github.com/hyperpolymath/rsr-template-repo")
       (description "RSR-compliant repository template"))
 
     (project
       (name "0-ai-gatekeeper-protocol")
       (relationship "standard-provider")
-      (integration "panic-attacker implements AI manifest protocol")
+      (integration "panic-attack implements AI manifest protocol")
       (url "https://github.com/hyperpolymath/0-ai-gatekeeper-protocol")
       (description "Universal AI manifest system"))
 
     (project
       (name "robot-repo-automaton")
       (relationship "potential-consumer")
-      (integration "could use panic-attacker for automated quality checks")
+      (integration "could use panic-attack for automated quality checks")
       (url "https://github.com/hyperpolymath/robot-repo-automaton")
       (description "Automated repository fixes with confidence thresholds")))
 
@@ -111,37 +132,42 @@
 
   (future-integrations
     (integration
-      (name "Datalog engine")
-      (status "planned-v0.5")
-      (description "Real logic programming engine (Crepe/Datafrog)"))
+      (name "sweep subcommand")
+      (status "planned-v2.1")
+      (description "Bulk scanning of directory-of-repos with aggregated results"))
 
     (integration
-      (name "Constraint sets")
-      (status "planned-v0.4")
-      (description "YAML-based stress profiles"))
+      (name "verisimdb API push")
+      (status "planned-v2.1")
+      (description "Push scan results as hexads directly to verisimdb API"))
 
     (integration
-      (name "CI/CD platforms")
-      (status "planned-v1.0")
-      (description "GitHub Actions, GitLab CI, Jenkins integration"))
+      (name "hypatia pipeline")
+      (status "planned-v2.1")
+      (description "Feed kanren facts as Logtalk predicates to hypatia rule engine"))
+
+    (integration
+      (name "SARIF output")
+      (status "planned-v2.2")
+      (description "SARIF output for GitHub Security tab and CodeQL integration"))
 
     (integration
       (name "crates.io")
-      (status "planned-v1.0")
+      (status "planned-v3.0")
       (description "Publish as cargo-installable tool")))
 
   (ecosystem-contributions
     (contribution
       (type "tool")
-      (value "Novel stress testing approach combining X-Ray + multi-axis + logic-based detection"))
+      (value "Universal static analysis combining assail scan + miniKanren logic engine + multi-axis stress testing"))
 
     (contribution
       (type "pattern")
-      (value "Demonstrates Datalog-inspired bug detection in Rust"))
+      (value "miniKanren-inspired relational reasoning for taint analysis and cross-language vulnerability detection in Rust"))
 
     (contribution
       (type "benchmark")
-      (value "Provides quality metrics for hyperpolymath projects"))
+      (value "Provides quality metrics for hyperpolymath projects across 47 languages"))
 
     (contribution
       (type "standard")
@@ -149,7 +175,7 @@
 
   (metadata
     (created "2026-02-07")
-    (updated "2026-02-07")
+    (updated "2026-02-08")
     (maintainer "Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>")
     (license "PMPL-1.0-or-later")
     (repository "https://github.com/hyperpolymath/panic-attacker")))
