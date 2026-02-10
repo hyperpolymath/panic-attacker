@@ -2,15 +2,24 @@
 
 //! Report generation module
 
+pub mod diff;
 pub mod formatter;
 pub mod generator;
+pub mod gui;
+pub mod output;
+pub mod tui;
 
 use crate::types::*;
 use anyhow::Result;
+use std::fs;
 use std::path::Path;
 
-pub use formatter::ReportFormatter;
+pub use diff::{format_diff, load_report};
+pub use formatter::{ReportFormatter, ReportView};
 pub use generator::ReportGenerator;
+pub use gui::ReportGui;
+pub use output::ReportOutputFormat;
+pub use tui::ReportTui;
 
 /// Generate a comprehensive assault report
 pub fn generate_assault_report(
@@ -21,14 +30,24 @@ pub fn generate_assault_report(
     generator.generate(assail_report, attack_results)
 }
 
-/// Save report to file
-pub fn save_report<P: AsRef<Path>>(report: &AssaultReport, path: P) -> Result<()> {
-    let formatter = ReportFormatter::new();
-    formatter.save(report, path)
+/// Save report to file with the requested format
+pub fn save_report<P: AsRef<Path>>(
+    report: &AssaultReport,
+    path: P,
+    format: ReportOutputFormat,
+) -> Result<()> {
+    let serialized = format.serialize(report)?;
+    fs::write(path, serialized)?;
+    Ok(())
 }
 
-/// Print report to console
-pub fn print_report(report: &AssaultReport) {
+/// Print report to console with view/depth controls
+pub fn print_report(
+    report: &AssaultReport,
+    view: ReportView,
+    expand_details: bool,
+    show_matrix: bool,
+) {
     let formatter = ReportFormatter::new();
-    formatter.print(report);
+    formatter.print_with_view(report, view, expand_details, show_matrix);
 }

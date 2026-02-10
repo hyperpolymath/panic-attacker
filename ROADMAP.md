@@ -198,6 +198,23 @@ vulnerability patterns and framework detection.
   - Detect encoding from BOM or heuristics
   - Transcode to UTF-8 before analysis
 
+---
+
+## v2.x — Ambush Timeline & Event Chains (DRAFT)
+
+**Theme: DAW-style scheduling + event-chain modelling**
+
+This milestone captures the longer-term plan for a timeline scheduler,
+constraints (Theory of Constraints), and event-chain modelling to drive
+ambush runs. See `docs/ambush-timeline.md` for the draft spec.
+
+- [ ] Timeline file format (JSON/YAML/Nickel) with tracks/events.
+- [ ] `ambush --timeline` execution path.
+- [ ] Conditions & event-chain dependencies (`start_when`, `stop_when`).
+- [ ] ToC constraint engine with subordination rules.
+- [ ] Panll export/import adapter.
+- [ ] Cross-platform backends with portable fallback (RISC-V/Minix compatible).
+
 **Estimated: 2–3 weeks** (each language ~2–3 days)
 
 ---

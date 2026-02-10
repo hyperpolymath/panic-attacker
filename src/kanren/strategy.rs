@@ -82,10 +82,7 @@ impl SearchStrategy {
 }
 
 /// Compute risk scores for all files and return them in analysis order
-pub fn prioritise_files(
-    report: &AssailReport,
-    strategy: SearchStrategy,
-) -> Vec<FileRisk> {
+pub fn prioritise_files(report: &AssailReport, strategy: SearchStrategy) -> Vec<FileRisk> {
     let mut scored: Vec<FileRisk> = report
         .file_statistics
         .iter()
@@ -95,14 +92,20 @@ pub fn prioritise_files(
     match strategy {
         SearchStrategy::RiskWeighted | SearchStrategy::BoundaryFirst => {
             // Highest risk first
-            scored.sort_by(|a, b| b.risk_score.partial_cmp(&a.risk_score).unwrap_or(std::cmp::Ordering::Equal));
+            scored.sort_by(|a, b| {
+                b.risk_score
+                    .partial_cmp(&a.risk_score)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            });
         }
         SearchStrategy::LanguageFamily => {
             // Group by language family, then by risk within each family
             scored.sort_by(|a, b| {
                 let fam_cmp = a.language.family().cmp(b.language.family());
                 if fam_cmp == std::cmp::Ordering::Equal {
-                    b.risk_score.partial_cmp(&a.risk_score).unwrap_or(std::cmp::Ordering::Equal)
+                    b.risk_score
+                        .partial_cmp(&a.risk_score)
+                        .unwrap_or(std::cmp::Ordering::Equal)
                 } else {
                     fam_cmp
                 }
@@ -298,10 +301,15 @@ mod tests {
             },
             file_statistics: vec![make_file_stats("src/main.rs", 0, 0)],
             recommended_attacks: vec![],
+            dependency_graph: Default::default(),
+            taint_matrix: Default::default(),
         };
 
         // Small, single-language, no high risk: should be DepthFirst
-        assert_eq!(SearchStrategy::auto_select(&report), SearchStrategy::DepthFirst);
+        assert_eq!(
+            SearchStrategy::auto_select(&report),
+            SearchStrategy::DepthFirst
+        );
     }
 
     #[test]
@@ -326,6 +334,8 @@ mod tests {
                 make_file_stats("src/moderate.rs", 1, 0),
             ],
             recommended_attacks: vec![],
+            dependency_graph: Default::default(),
+            taint_matrix: Default::default(),
         };
 
         let ordered = prioritise_files(&report, SearchStrategy::RiskWeighted);

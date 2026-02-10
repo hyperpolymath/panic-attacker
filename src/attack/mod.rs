@@ -3,12 +3,14 @@
 //! Attack orchestration module
 
 pub mod executor;
+pub mod profile;
 pub mod strategies;
 
 use crate::types::*;
 use anyhow::Result;
 
 pub use executor::AttackExecutor;
+pub use profile::AttackProfile;
 
 /// Execute an attack against a target program
 pub fn execute_attack(config: AttackConfig) -> Result<Vec<AttackResult>> {

@@ -2,8 +2,8 @@
 
 //! Integration tests for panic-attacker v0.2
 
-use panic_attack::types::*;
 use panic_attack::assail;
+use panic_attack::types::*;
 use std::path::Path;
 
 #[test]

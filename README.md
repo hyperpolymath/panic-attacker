@@ -13,9 +13,9 @@ Universal stress testing and logic-based bug signature detection tool.
 
 `panic-attack` is a comprehensive program testing tool that combines:
 
-1. **Assail Static Analysis**: Pre-analyzes programs to identify weak points across 5 languages
-2. **Multi-Axis Stress Testing**: Attacks programs across 6 different dimensions
-3. **Logic-Based Bug Detection**: Uses Datalog-inspired rules to detect bug signatures
+1. **Assail Static Analysis**: Pre-analyzes programs to identify weak points across 5 languages. This is done via the `assail` subcommand.
+2. **Multi-Axis Stress Testing**: Attacks programs across 6 different dimensions. This is done via the `attack` subcommand. The `assault` subcommand combines both **Assail Static Analysis** and **Multi-Axis Stress Testing** into a single, comprehensive test.
+3. **Logic-Based Bug Detection**: Uses Datalog-inspired rules to detect bug signatures.
 
 ## Features
 
@@ -84,13 +84,17 @@ cargo install --path .
 ## Quick Start
 
 ```bash
-# Analyze a program
+# Analyze a program (static analysis of source code)
 panic-attack assail ./target/release/my-program --verbose
 
-# Full assault (assail + multi-axis attacks)
+# Full assault (combines static analysis with multi-axis stress testing on a binary)
 panic-attack assault ./target/release/my-program
 
-# Single attack
+# Ambush: run program under ambient stressors
+# Note: The `ambush` subcommand may not be available in all installed versions of panic-attack.
+panic-attack ambush ./target/release/my-program
+
+# Single attack (dynamic stress test on a binary)
 panic-attack attack ./target/release/my-program --axis memory --intensity heavy
 ```
 
@@ -154,7 +158,54 @@ panic-attack assault ./my-program --axes cpu,memory,concurrency
 
 # With output report
 panic-attack assault ./my-program --output assault-report.json --intensity heavy
+
+# Analyze source separately from the target binary
+panic-attack assault --source /path/to/source ./target/release/my-program
 ```
+
+### Ambush (Ambient Stressors)
+
+Run the target program while the system is stressed on selected axes. This works even when the
+target does not accept attack flags (use profiles/args to pass normal program flags if needed).
+
+```bash
+# Ambush with all axes (default)
+panic-attack ambush ./my-program
+
+# Limit axes
+panic-attack ambush ./my-program --axes cpu,memory,concurrency
+
+# Pass args to the target program
+panic-attack ambush ./my-program --arg --config --arg cfg.toml
+
+# Include assail source separate from binary
+panic-attack ambush --source /path/to/source ./target/release/my-program
+
+# DAW-style timeline (JSON/YAML)
+panic-attack ambush ./my-program --timeline timeline.yaml
+```
+
+Timeline format draft: `docs/ambush-timeline.md`.
+
+### Attack Profiles & Probe Mode
+
+Assaults can pass custom arguments to targets via a profile file (JSON/YAML) or CLI flags:
+
+```bash
+# Use a profile file
+panic-attack assault ./my-program --profile profiles/attack-profile.example.json
+
+# Pass common args to every axis
+panic-attack assault ./my-program --arg --config --arg cfg.toml
+
+# Axis-specific args (format: AXIS=ARG)
+panic-attack assault ./my-program --axis-arg cpu=--iterations --axis-arg cpu=5000
+
+# Probe modes: auto (default), always, never
+panic-attack assault ./my-program --probe always
+```
+
+Sample profiles live in `profiles/` and are documented in `docs/attack-profiles.md`.
 
 ### Analyze Crash Reports
 
@@ -163,6 +214,41 @@ Detect bug signatures from existing crash reports:
 ```bash
 panic-attack analyze crash-report.json
 ```
+
+### Report Views, Storage, and TUI
+
+Control the experience of generated assault reports with a set of flags:
+- `--report-view` chooses between `summary`, `accordion`, `dashboard`, or the `matrix` pivot display.
+- Add `--expand-sections` to open accordions automatically or `--pivot` to append the taint matrix to any printout.
+- Use `--store <dir>` to persist JSON/YAML/Nickel exports to disk plus the `verisimdb-data/` cache when configured via the manifest.
+- Drop `--quiet` to suppress chatter, `--parallel` to run attack phases concurrently, and `--output <file>` with `--output-format` (json|yaml|nickel) to save a single report.
+- Browse saved reports with `panic-attack report path/to/report.json`, launch the terminal UI with `panic-attack tui path/to/report.json`, or start the GUI with `panic-attack gui path/to/report.json`.
+
+### VerisimDB Diff Viewer
+
+Compare two reports (JSON/YAML) or use the latest two stored in `verisimdb-data/verisimdb`:
+
+```bash
+# Use explicit paths
+panic-attack diff base-report.json compare-report.json
+
+# Use latest two stored reports
+panic-attack diff
+```
+
+### AI Manifest & Nickel
+
+The repository’s `AI.a2ml` manifest now exposes a `(reports ...)` block that dictates the default `formats` (`json`, `nickel`, `yaml`) and `storage-targets` (`filesystem`, `verisimdb`). Run `panic-attack manifest` (or `panic-attack manifest --output manifest.ncl`) to render that manifest as Nickel for downstream configuration and tooling.
+
+### PanLL Export
+
+Export an assault report to a PanLL event-chain model:
+
+```bash
+panic-attack panll reports/assault-report.json --output panll-event-chain.json
+```
+
+See `docs/panll-export.md` for the current export shape.
 
 ## Example Output
 

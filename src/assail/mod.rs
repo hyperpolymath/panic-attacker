@@ -93,7 +93,10 @@ fn run_logic_engine(report: &AssailReport) {
     println!("    Total facts: {}", results.total_facts);
     println!("    Derived facts: {}", results.derived_facts);
     println!("    Tainted paths: {}", results.tainted_paths);
-    println!("    Critical vulnerabilities: {}", results.critical_vulnerabilities);
+    println!(
+        "    Critical vulnerabilities: {}",
+        results.critical_vulnerabilities
+    );
     println!("    High vulnerabilities: {}", results.high_vulnerabilities);
     println!("    Cross-language vulns: {}", results.cross_language_vulns);
 
@@ -115,7 +118,10 @@ fn run_logic_engine(report: &AssailReport) {
     // Query cross-language interactions
     let interactions = CrossLangAnalyzer::query_interactions(&engine.db);
     if !interactions.is_empty() {
-        println!("\n    Cross-Language Interactions ({}):", interactions.len());
+        println!(
+            "\n    Cross-Language Interactions ({}):",
+            interactions.len()
+        );
         for interaction in interactions.iter().take(10) {
             println!(
                 "      {} ({:?}) -> {} ({:?}) via {:?} (risk: {:.2})",
@@ -128,7 +134,10 @@ fn run_logic_engine(report: &AssailReport) {
             );
         }
         if interactions.len() > 10 {
-            println!("      ... and {} more interactions", interactions.len() - 10);
+            println!(
+                "      ... and {} more interactions",
+                interactions.len() - 10
+            );
         }
     }
 }

@@ -6,7 +6,7 @@
 //! languages in polyglot codebases: FFI boundaries, message passing,
 //! shared state, and serialization boundaries.
 
-use crate::kanren::core::{FactDB, LogicFact, LogicRule, Term};
+use crate::kanren::core::{FactDB, LogicFact, LogicRule, RuleMetadata, Term};
 use crate::types::*;
 
 /// Mechanism by which languages interact
@@ -141,10 +141,7 @@ impl CrossLangAnalyzer {
             for j in (i + 1)..family_vec.len() {
                 db.assert_fact(LogicFact::new(
                     "language_boundary",
-                    vec![
-                        Term::atom(family_vec[i]),
-                        Term::atom(family_vec[j]),
-                    ],
+                    vec![Term::atom(family_vec[i]), Term::atom(family_vec[j])],
                 ));
             }
         }
@@ -155,13 +152,10 @@ impl CrossLangAnalyzer {
         // Rule: ffi_risk(File, Mechanism) :-
         //   cross_lang_call(File, _, Mechanism),
         //   weak_point(UnsafeCode, File, _)
-        db.add_rule(LogicRule {
-            name: "ffi_risk".to_string(),
-            head: LogicFact::new(
-                "ffi_risk",
-                vec![Term::Var(400), Term::Var(402)],
-            ),
-            body: vec![
+        db.add_rule(LogicRule::with_metadata(
+            "ffi_risk".into(),
+            LogicFact::new("ffi_risk", vec![Term::Var(400), Term::Var(402)]),
+            vec![
                 LogicFact::new(
                     "cross_lang_call",
                     vec![Term::Var(400), Term::Var(401), Term::Var(402)],
@@ -171,53 +165,41 @@ impl CrossLangAnalyzer {
                     vec![Term::atom("UnsafeCode"), Term::Var(400), Term::Var(403)],
                 ),
             ],
-            confidence: 0.85,
-        });
+            RuleMetadata::default(),
+        ));
 
         // Rule: boundary_vuln(Family1, Family2) :-
         //   language_boundary(Family1, Family2),
         //   cross_lang_call(_, _, _)
         // (Signals that there is a vulnerability-relevant boundary)
-        db.add_rule(LogicRule {
-            name: "active_boundary".to_string(),
-            head: LogicFact::new(
-                "active_boundary",
-                vec![Term::Var(410), Term::Var(411)],
-            ),
-            body: vec![
-                LogicFact::new(
-                    "language_boundary",
-                    vec![Term::Var(410), Term::Var(411)],
-                ),
+        db.add_rule(LogicRule::with_metadata(
+            "active_boundary".into(),
+            LogicFact::new("active_boundary", vec![Term::Var(410), Term::Var(411)]),
+            vec![
+                LogicFact::new("language_boundary", vec![Term::Var(410), Term::Var(411)]),
                 LogicFact::new(
                     "cross_lang_call",
                     vec![Term::Var(412), Term::Var(413), Term::Var(414)],
                 ),
             ],
-            confidence: 0.60,
-        });
+            RuleMetadata::default(),
+        ));
 
         // Rule: serialization_risk(File) :-
         //   cross_lang_call(File, _, "SharedFile"),
         //   taint_source(File, _)
-        db.add_rule(LogicRule {
-            name: "serialization_risk".to_string(),
-            head: LogicFact::new(
-                "serialization_risk",
-                vec![Term::Var(420)],
-            ),
-            body: vec![
+        db.add_rule(LogicRule::with_metadata(
+            "serialization_risk".into(),
+            LogicFact::new("serialization_risk", vec![Term::Var(420)]),
+            vec![
                 LogicFact::new(
                     "cross_lang_call",
                     vec![Term::Var(420), Term::Var(421), Term::atom("SharedFile")],
                 ),
-                LogicFact::new(
-                    "taint_source",
-                    vec![Term::Var(420), Term::Var(422)],
-                ),
+                LogicFact::new("taint_source", vec![Term::Var(420), Term::Var(422)]),
             ],
-            confidence: 0.75,
-        });
+            RuleMetadata::default(),
+        ));
     }
 
     /// Query cross-language vulnerabilities from the database

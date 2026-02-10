@@ -1,0 +1,174 @@
+assail_report:
+  program_path: /var/mnt/eclipse/repos/panic-attacker/target/debug/panic-attack
+  language: unknown
+  frameworks: []
+  weak_points:
+  - category: UncheckedError
+    location: panic-attack
+    severity: Low
+    description: 29 TODO/FIXME/HACK markers in panic-attack
+    recommended_attack:
+    - cpu
+  statistics:
+    total_lines: 167158
+    unsafe_blocks: 0
+    panic_sites: 0
+    unwrap_calls: 0
+    allocation_sites: 91042
+    io_operations: 120
+    threading_constructs: 1334
+  file_statistics:
+  - file_path: panic-attack
+    lines: 167158
+    unsafe_blocks: 0
+    panic_sites: 0
+    unwrap_calls: 0
+    allocation_sites: 91042
+    io_operations: 120
+    threading_constructs: 1334
+  recommended_attacks:
+  - concurrency
+  - disk
+  - memory
+  - cpu
+  dependency_graph:
+    edges: []
+  taint_matrix:
+    rows:
+    - source_category: UncheckedError
+      sink_axis: cpu
+      severity_value: 1.0
+      files:
+      - panic-attack
+      frameworks: []
+      relation: UncheckedError->Cpu
+attack_results:
+- program: /var/mnt/eclipse/repos/panic-attacker/target/debug/panic-attack
+  axis: cpu
+  success: false
+  exit_code: 2
+  duration:
+    secs: 0
+    nanos: 3506633
+  peak_memory: 0
+  crashes:
+  - timestamp: 2026-02-09T18:44:44.457163556+00:00
+    signal: null
+    backtrace: null
+    stderr: |
+      error: unexpected argument '--iterations' found
+
+      Usage: panic-attack [OPTIONS] <COMMAND>
+
+      For more information, try '--help'.
+    stdout: ''
+  signatures_detected: []
+- program: /var/mnt/eclipse/repos/panic-attacker/target/debug/panic-attack
+  axis: memory
+  success: false
+  exit_code: 2
+  duration:
+    secs: 0
+    nanos: 3081061
+  peak_memory: 5368709120
+  crashes:
+  - timestamp: 2026-02-09T18:44:44.460345435+00:00
+    signal: null
+    backtrace: null
+    stderr: |
+      error: unexpected argument '--allocate-mb' found
+
+      Usage: panic-attack [OPTIONS] <COMMAND>
+
+      For more information, try '--help'.
+    stdout: ''
+  signatures_detected: []
+- program: /var/mnt/eclipse/repos/panic-attacker/target/debug/panic-attack
+  axis: disk
+  success: false
+  exit_code: 2
+  duration:
+    secs: 0
+    nanos: 3091410
+  peak_memory: 0
+  crashes:
+  - timestamp: 2026-02-09T18:44:44.463547320+00:00
+    signal: null
+    backtrace: null
+    stderr: |
+      error: unexpected argument '--write-files' found
+
+      Usage: panic-attack [OPTIONS] <COMMAND>
+
+      For more information, try '--help'.
+    stdout: ''
+  signatures_detected: []
+- program: /var/mnt/eclipse/repos/panic-attacker/target/debug/panic-attack
+  axis: network
+  success: false
+  exit_code: 2
+  duration:
+    secs: 0
+    nanos: 3914620
+  peak_memory: 0
+  crashes:
+  - timestamp: 2026-02-09T18:44:44.467534852+00:00
+    signal: null
+    backtrace: null
+    stderr: |
+      error: unexpected argument '--connections' found
+
+      Usage: panic-attack [OPTIONS] <COMMAND>
+
+      For more information, try '--help'.
+    stdout: ''
+  signatures_detected: []
+- program: /var/mnt/eclipse/repos/panic-attacker/target/debug/panic-attack
+  axis: concurrency
+  success: false
+  exit_code: 2
+  duration:
+    secs: 0
+    nanos: 3337589
+  peak_memory: 0
+  crashes:
+  - timestamp: 2026-02-09T18:44:44.471058286+00:00
+    signal: null
+    backtrace: null
+    stderr: |
+      error: unexpected argument '--threads' found
+
+      Usage: panic-attack [OPTIONS] <COMMAND>
+
+      For more information, try '--help'.
+    stdout: ''
+  signatures_detected: []
+- program: /var/mnt/eclipse/repos/panic-attacker/target/debug/panic-attack
+  axis: time
+  success: false
+  exit_code: 2
+  duration:
+    secs: 0
+    nanos: 4324161
+  peak_memory: 0
+  crashes:
+  - timestamp: 2026-02-09T18:44:44.475399056+00:00
+    signal: null
+    backtrace: null
+    stderr: "Universal stress testing and logic-based bug signature detection\n\nUsage: panic-attack [OPTIONS] <COMMAND>\n\nCommands:\n  assail    Run assail static analysis on a target program\n  attack    Execute a single attack on a target program\n  assault   Full assault: assail + multi-axis attacks\n  analyze   Analyze crash reports for bug signatures\n  report    Render a saved assault report with view controls\n  tui       Interactive review of a saved report\n  manifest  Export the AI manifest as Nickel\n  help      Print this message or the help of the given subcommand(s)\n\nOptions:\n      --report-view <REPORT_VIEW>      [default: accordion] [possible values: summary, accordion, dashboard, matrix]\n      --expand-sections                \n      --output-format <OUTPUT_FORMAT>  [default: json] [possible values: json, yaml, nickel]\n      --pivot                          \n      --store <DIR>                    \n      --quiet                          \n      --parallel                       \n  -h, --help                           Print help\n  -V, --version                        Print version\n"
+    stdout: ''
+  signatures_detected: []
+total_crashes: 6
+total_signatures: 0
+overall_assessment:
+  robustness_score: 40.0
+  critical_issues:
+  - Program crashed under Cpu attack (1 crashes)
+  - Program crashed under Memory attack (1 crashes)
+  - Program crashed under Disk attack (1 crashes)
+  - Program crashed under Network attack (1 crashes)
+  - Program crashed under Concurrency attack (1 crashes)
+  - Program crashed under Time attack (1 crashes)
+  recommendations:
+  - Add comprehensive error handling for edge cases
+  - Consider comprehensive refactoring for robustness

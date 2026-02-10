@@ -16,7 +16,11 @@ pub mod crosslang;
 pub mod strategy;
 pub mod taint;
 
-pub use self::core::{FactDB, LogicEngine, Query, QueryResult};
+#[allow(unused_imports)]
+pub use self::core::{FactDB, LogicEngine};
+#[allow(unused_imports)]
 pub use crosslang::CrossLangAnalyzer;
+#[allow(unused_imports)]
 pub use strategy::SearchStrategy;
+#[allow(unused_imports)]
 pub use taint::{TaintAnalyzer, TaintSink, TaintSource};

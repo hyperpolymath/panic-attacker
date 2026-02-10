@@ -89,6 +89,10 @@
     (audit "cargo audit")
     (coverage "cargo tarpaulin --out Xml"))
 
+  (reports
+    (formats "json" "nickel" "yaml")
+    (storage-targets "filesystem" "verisimdb"))
+
   (quality-standards
     (test-coverage "target: 80%")
     (documentation "rustdoc for all public APIs")

@@ -17,8 +17,6 @@ pub enum Term {
     Atom(String),
     /// Integer value
     Int(i64),
-    /// Float encoded as fixed-point for Hash/Eq
-    Fixed(i64),
     /// Compound term: functor(args...)
     Compound(String, Vec<Term>),
 }
@@ -32,6 +30,7 @@ impl Term {
         Term::Compound(name.to_string(), args)
     }
 
+    #[cfg(test)]
     pub fn is_var(&self) -> bool {
         matches!(self, Term::Var(_))
     }
@@ -101,6 +100,7 @@ impl Substitution {
     }
 
     /// Extract the resolved value of a variable
+    #[cfg(test)]
     pub fn resolve(&self, var_id: u32) -> Option<Term> {
         let term = Term::Var(var_id);
         let resolved = self.walk(&term);
@@ -129,7 +129,44 @@ impl LogicFact {
 
     /// Convert to a compound term for unification
     pub fn to_term(&self) -> Term {
-        Term::Compound(self.relation.clone(), self.args.clone())
+        Term::compound(&self.relation, self.args.clone())
+    }
+}
+
+/// Metadata for inference rules
+#[derive(Debug, Clone)]
+pub struct RuleMetadata {
+    pub confidence: f64,
+    pub priority: u32,
+    pub tags: Vec<String>,
+    pub risk_tier: Option<String>,
+}
+
+impl RuleMetadata {
+    #[allow(dead_code)]
+    pub fn new(
+        confidence: f64,
+        priority: u32,
+        tags: Vec<String>,
+        risk_tier: Option<String>,
+    ) -> Self {
+        Self {
+            confidence,
+            priority,
+            tags,
+            risk_tier,
+        }
+    }
+}
+
+impl Default for RuleMetadata {
+    fn default() -> Self {
+        Self {
+            confidence: 0.5,
+            priority: 0,
+            tags: Vec::new(),
+            risk_tier: None,
+        }
     }
 }
 
@@ -139,7 +176,34 @@ pub struct LogicRule {
     pub name: String,
     pub head: LogicFact,
     pub body: Vec<LogicFact>,
+    pub metadata: RuleMetadata,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Clone)]
+pub struct RuleApplication {
+    pub name: String,
     pub confidence: f64,
+    pub priority: u32,
+    pub tags: Vec<String>,
+    pub risk_tier: Option<String>,
+    pub derived: usize,
+}
+
+impl LogicRule {
+    pub fn with_metadata(
+        name: String,
+        head: LogicFact,
+        body: Vec<LogicFact>,
+        metadata: RuleMetadata,
+    ) -> Self {
+        Self {
+            name,
+            head,
+            body,
+            metadata,
+        }
+    }
 }
 
 /// The fact database with forward chaining
@@ -147,7 +211,6 @@ pub struct LogicRule {
 pub struct FactDB {
     facts: HashSet<LogicFact>,
     rules: Vec<LogicRule>,
-    next_var: u32,
 }
 
 impl FactDB {
@@ -160,7 +223,13 @@ impl FactDB {
         self.facts.insert(fact);
     }
 
+    /// Add a rule
+    pub fn add_rule(&mut self, rule: LogicRule) {
+        self.rules.push(rule);
+    }
+
     /// Assert a convenience fact from relation name and string args
+    #[cfg(test)]
     pub fn assert(&mut self, relation: &str, args: Vec<&str>) {
         self.assert_fact(LogicFact::new(
             relation,
@@ -168,19 +237,8 @@ impl FactDB {
         ));
     }
 
-    /// Add a rule
-    pub fn add_rule(&mut self, rule: LogicRule) {
-        self.rules.push(rule);
-    }
-
-    /// Generate a fresh variable ID
-    pub fn fresh_var(&mut self) -> Term {
-        let id = self.next_var;
-        self.next_var += 1;
-        Term::Var(id)
-    }
-
     /// Query the database: find all substitutions matching a pattern
+    #[cfg(test)]
     pub fn query(&self, relation: &str, pattern: &[Term]) -> Vec<Substitution> {
         let query_term = Term::Compound(relation.to_string(), pattern.to_vec());
         let mut results = Vec::new();
@@ -199,10 +257,11 @@ impl FactDB {
     }
 
     /// Forward chaining: apply all rules to derive new facts
-    /// Returns the number of new facts derived
-    pub fn forward_chain(&mut self) -> usize {
+    /// Returns the number of new facts derived plus rule applications
+    pub fn forward_chain(&mut self) -> (usize, Vec<RuleApplication>) {
         let mut new_facts = Vec::new();
         let mut total_derived = 0;
+        let mut applications = Vec::new();
 
         loop {
             new_facts.clear();
@@ -210,13 +269,25 @@ impl FactDB {
             for rule in &self.rules {
                 // Try to match all body facts
                 let matches = self.match_body(&rule.body);
+                let mut derived_this_rule = 0;
 
                 for subst in matches {
-                    // Apply substitution to head to get derived fact
                     let derived = self.apply_substitution_to_fact(&rule.head, &subst);
                     if !self.facts.contains(&derived) {
                         new_facts.push(derived);
+                        derived_this_rule += 1;
                     }
+                }
+
+                if derived_this_rule > 0 {
+                    applications.push(RuleApplication {
+                        name: rule.name.clone(),
+                        confidence: rule.metadata.confidence,
+                        priority: rule.metadata.priority,
+                        tags: rule.metadata.tags.clone(),
+                        risk_tier: rule.metadata.risk_tier.clone(),
+                        derived: derived_this_rule,
+                    });
                 }
             }
 
@@ -230,7 +301,7 @@ impl FactDB {
             }
         }
 
-        total_derived
+        (total_derived, applications)
     }
 
     /// Match a conjunction of body facts against the database
@@ -283,13 +354,17 @@ impl FactDB {
     }
 
     /// Count facts by relation
+    #[cfg(test)]
     pub fn fact_count(&self, relation: &str) -> usize {
         self.facts.iter().filter(|f| f.relation == relation).count()
     }
 
     /// Get all facts for a relation
     pub fn get_facts(&self, relation: &str) -> Vec<&LogicFact> {
-        self.facts.iter().filter(|f| f.relation == relation).collect()
+        self.facts
+            .iter()
+            .filter(|f| f.relation == relation)
+            .collect()
     }
 
     /// Total fact count
@@ -298,48 +373,10 @@ impl FactDB {
     }
 
     /// Total rule count
+    #[cfg(test)]
     pub fn rule_count(&self) -> usize {
         self.rules.len()
     }
-}
-
-/// Query builder for ergonomic fact queries
-pub struct Query {
-    relation: String,
-    args: Vec<Term>,
-}
-
-impl Query {
-    pub fn new(relation: &str) -> Self {
-        Self {
-            relation: relation.to_string(),
-            args: Vec::new(),
-        }
-    }
-
-    pub fn arg(mut self, term: Term) -> Self {
-        self.args.push(term);
-        self
-    }
-
-    pub fn atom(self, s: &str) -> Self {
-        self.arg(Term::atom(s))
-    }
-
-    pub fn var(self, id: u32) -> Self {
-        self.arg(Term::Var(id))
-    }
-
-    pub fn run(self, db: &FactDB) -> Vec<Substitution> {
-        db.query(&self.relation, &self.args)
-    }
-}
-
-/// Result of a logic query
-#[derive(Debug, Clone)]
-pub struct QueryResult {
-    pub substitutions: Vec<Substitution>,
-    pub derived_facts: usize,
 }
 
 /// The main logic engine combining FactDB with inference
@@ -370,10 +407,7 @@ impl LogicEngine {
 
         // Assert weak point facts
         for wp in &report.weak_points {
-            let loc = wp
-                .location
-                .as_deref()
-                .unwrap_or("unknown");
+            let loc = wp.location.as_deref().unwrap_or("unknown");
             self.db.assert_fact(LogicFact::new(
                 "weak_point",
                 vec![
@@ -412,39 +446,44 @@ impl LogicEngine {
         let v2 = Term::Var(102);
         let v3 = Term::Var(103);
 
-        self.db.add_rule(LogicRule {
-            name: "tainted_path".to_string(),
-            head: LogicFact::new("tainted_path", vec![v0.clone(), v1.clone(), v2.clone(), v3.clone()]),
-            body: vec![
+        self.db.add_rule(LogicRule::with_metadata(
+            "tainted_path".into(),
+            LogicFact::new(
+                "tainted_path",
+                vec![v0.clone(), v1.clone(), v2.clone(), v3.clone()],
+            ),
+            vec![
                 LogicFact::new("taint_source", vec![v0.clone(), v1.clone()]),
                 LogicFact::new("data_flow", vec![v0.clone(), v2.clone()]),
                 LogicFact::new("taint_sink", vec![v2.clone(), v3.clone()]),
             ],
-            confidence: 0.85,
-        });
+            RuleMetadata::default(),
+        ));
 
         // Rule: vulnerability_chain(File, Category) :-
         //   weak_point(Category, File, Severity),
         //   Severity = "Critical" | "High"
         let v4 = Term::Var(104);
         let v5 = Term::Var(105);
-        self.db.add_rule(LogicRule {
-            name: "critical_vulnerability".to_string(),
-            head: LogicFact::new("critical_vuln", vec![v4.clone(), v5.clone()]),
-            body: vec![
-                LogicFact::new("weak_point", vec![v4.clone(), v5.clone(), Term::atom("Critical")]),
-            ],
-            confidence: 0.95,
-        });
+        self.db.add_rule(LogicRule::with_metadata(
+            "critical_vuln".into(),
+            LogicFact::new("critical_vuln", vec![v4.clone(), v5.clone()]),
+            vec![LogicFact::new(
+                "weak_point",
+                vec![v4.clone(), v5.clone(), Term::atom("Critical")],
+            )],
+            RuleMetadata::default(),
+        ));
 
-        self.db.add_rule(LogicRule {
-            name: "high_vulnerability".to_string(),
-            head: LogicFact::new("high_vuln", vec![v4.clone(), v5.clone()]),
-            body: vec![
-                LogicFact::new("weak_point", vec![v4.clone(), v5.clone(), Term::atom("High")]),
-            ],
-            confidence: 0.80,
-        });
+        self.db.add_rule(LogicRule::with_metadata(
+            "high_vuln".into(),
+            LogicFact::new("high_vuln", vec![v4.clone(), v5.clone()]),
+            vec![LogicFact::new(
+                "weak_point",
+                vec![v4.clone(), v5.clone(), Term::atom("High")],
+            )],
+            RuleMetadata::default(),
+        ));
 
         // Rule: cross_lang_vuln(CallerFile, CalleeFile, Mechanism) :-
         //   cross_lang_call(CallerFile, CalleeFile, Mechanism),
@@ -456,16 +495,16 @@ impl LogicEngine {
         let v9 = Term::Var(109);
         let v10 = Term::Var(110);
 
-        self.db.add_rule(LogicRule {
-            name: "cross_lang_vulnerability".to_string(),
-            head: LogicFact::new("cross_lang_vuln", vec![v6.clone(), v7.clone(), v8.clone()]),
-            body: vec![
+        self.db.add_rule(LogicRule::with_metadata(
+            "cross_lang_vuln".into(),
+            LogicFact::new("cross_lang_vuln", vec![v6.clone(), v7.clone(), v8.clone()]),
+            vec![
                 LogicFact::new("cross_lang_call", vec![v6.clone(), v7.clone(), v8.clone()]),
                 LogicFact::new("taint_source", vec![v6.clone(), v9]),
                 LogicFact::new("taint_sink", vec![v7.clone(), v10]),
             ],
-            confidence: 0.90,
-        });
+            RuleMetadata::default(),
+        ));
 
         // Rule: excessive_risk(File) :-
         //   file_risk(File, Score),
@@ -476,7 +515,7 @@ impl LogicEngine {
     /// Run forward chaining and collect results
     pub fn analyze(&mut self) -> EngineResults {
         self.load_standard_rules();
-        let derived = self.db.forward_chain();
+        let (derived, _) = self.db.forward_chain();
 
         let tainted_paths = self.db.get_facts("tainted_path").len();
         let critical_vulns = self.db.get_facts("critical_vuln").len();
@@ -491,28 +530,6 @@ impl LogicEngine {
             high_vulnerabilities: high_vulns,
             cross_language_vulns: cross_lang,
         }
-    }
-
-    /// Backward query: given a vulnerability type, find which files could cause it
-    pub fn backward_query(&self, category: &str) -> Vec<String> {
-        let results = Query::new("weak_point")
-            .atom(category)
-            .var(200)
-            .var(201)
-            .run(&self.db);
-
-        results
-            .iter()
-            .filter_map(|s| {
-                s.resolve(200).and_then(|t| {
-                    if let Term::Atom(file) = t {
-                        Some(file)
-                    } else {
-                        None
-                    }
-                })
-            })
-            .collect()
     }
 }
 
@@ -578,20 +595,17 @@ mod tests {
         db.assert("parent", vec!["bob", "ann"]);
 
         // Rule: grandparent(X, Z) :- parent(X, Y), parent(Y, Z)
-        db.add_rule(LogicRule {
-            name: "grandparent".to_string(),
-            head: LogicFact::new(
-                "grandparent",
-                vec![Term::Var(0), Term::Var(2)],
-            ),
-            body: vec![
+        db.add_rule(LogicRule::with_metadata(
+            "grandparent".into(),
+            LogicFact::new("grandparent", vec![Term::Var(0), Term::Var(2)]),
+            vec![
                 LogicFact::new("parent", vec![Term::Var(0), Term::Var(1)]),
                 LogicFact::new("parent", vec![Term::Var(1), Term::Var(2)]),
             ],
-            confidence: 1.0,
-        });
+            RuleMetadata::default(),
+        ));
 
-        let derived = db.forward_chain();
+        let (derived, _) = db.forward_chain();
         assert!(derived > 0);
         assert_eq!(db.fact_count("grandparent"), 1);
     }

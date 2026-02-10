@@ -1,14 +1,14 @@
 ;; SPDX-License-Identifier: PMPL-1.0-or-later
 ;; State checkpoint for panic-attack (formerly panic-attacker)
 ;; Media Type: application/vnd.state+scm
-;; Last Updated: 2026-02-08
+;; Last Updated: 2026-02-09
 
 (state
   (metadata
     (version "1.0")
     (project "panic-attack")
-    (last-updated "2026-02-08T22:00:00Z")
-    (session-count 5))
+    (last-updated "2026-02-09T20:15:00Z")
+    (session-count 6))
 
   (project-context
     (name "panic-attack")
@@ -69,7 +69,11 @@
       "6-axis stress testing (CPU, memory, disk, network, concurrency, time)"
       "Logic-based bug detection (use-after-free, double-free, deadlock, data-race)"
       "Per-file language detection and risk scoring"
-      "JSON and terminal output"))
+      "JSON, YAML, and Nickel output formats"
+      "Report views (summary, accordion, dashboard, matrix) + TUI viewer"
+      "PanLL event-chain export for external timeline visualisation"
+      "Ambush timeline scheduling (plan-only) for stressor sequencing"
+      "Optional verisimdb storage integration"))
 
   (route-to-mvp
     (target "v2.1.0: Bulk scanning + verisimdb integration")
@@ -120,6 +124,16 @@
       (estimated-effort "1-2 hours")))
 
   (session-history
+    (session
+      (id "6")
+      (date "2026-02-09")
+      (duration "2h")
+      (focus "PanLL integration + report UX expansion")
+      (outcomes
+        "Added PanLL event-chain export format and docs"
+        "Added ambush timeline planning + parser"
+        "Added report views (accordion, dashboard, matrix) and TUI viewer"
+        "Added Nickel output and report metadata wiring"))
     (session
       (id "5")
       (date "2026-02-08")

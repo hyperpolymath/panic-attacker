@@ -17,6 +17,13 @@
 
   (related-projects
     (project
+      (name "panll")
+      (relationship "consumer")
+      (integration "exports ambush timeline/event-chain reports in PanLL format")
+      (url "https://github.com/hyperpolymath/panll")
+      (description "Human-Things Interface for neurosymbolic co-working and event-chain visualisation"))
+
+    (project
       (name "verisimdb")
       (relationship "data-store")
       (integration "panic-attack scan results stored as hexads in verisimdb")
@@ -175,7 +182,7 @@
 
   (metadata
     (created "2026-02-07")
-    (updated "2026-02-08")
+    (updated "2026-02-09")
     (maintainer "Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>")
     (license "PMPL-1.0-or-later")
     (repository "https://github.com/hyperpolymath/panic-attacker")))

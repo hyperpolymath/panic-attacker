@@ -4,9 +4,13 @@
 //!
 //! Library interface for integration tests and external consumers.
 
+pub mod a2ml;
+pub mod ambush;
+pub mod assail;
 pub mod attack;
 pub mod kanren;
+pub mod panll;
 pub mod report;
 pub mod signatures;
+pub mod storage;
 pub mod types;
-pub mod assail;

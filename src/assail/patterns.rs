@@ -19,7 +19,9 @@ impl PatternDetector {
             Language::C | Language::Cpp => patterns.extend(Self::c_cpp_patterns()),
             Language::Go => patterns.extend(Self::go_patterns()),
             Language::Python => patterns.extend(Self::python_patterns()),
-            Language::JavaScript | Language::ReScript => patterns.extend(Self::javascript_patterns()),
+            Language::JavaScript | Language::ReScript => {
+                patterns.extend(Self::javascript_patterns())
+            }
             Language::Elixir | Language::Erlang | Language::Gleam => {
                 patterns.extend(Self::beam_patterns())
             }

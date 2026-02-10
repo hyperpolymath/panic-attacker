@@ -2,8 +2,8 @@
 
 //! Unit tests for language-specific analyzers
 
-use panic_attack::types::*;
 use panic_attack::assail;
+use panic_attack::types::*;
 use std::fs;
 use tempfile::TempDir;
 

@@ -10,7 +10,7 @@
 use crate::types::*;
 use anyhow::Result;
 use regex::Regex;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -124,36 +124,76 @@ impl Analyzer {
                     self.analyze_rust(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
                 }
                 Language::C | Language::Cpp => {
-                    self.analyze_c_cpp(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
+                    self.analyze_c_cpp(
+                        &content,
+                        &mut file_stats,
+                        &mut file_weak_points,
+                        &rel_path,
+                    )?;
                 }
                 Language::Go => {
                     self.analyze_go(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
                 }
                 Language::Python => {
-                    self.analyze_python(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
+                    self.analyze_python(
+                        &content,
+                        &mut file_stats,
+                        &mut file_weak_points,
+                        &rel_path,
+                    )?;
                 }
                 Language::JavaScript => {
-                    self.analyze_javascript(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
+                    self.analyze_javascript(
+                        &content,
+                        &mut file_stats,
+                        &mut file_weak_points,
+                        &rel_path,
+                    )?;
                 }
                 Language::Ruby => {
                     self.analyze_ruby(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
                 }
                 // BEAM family
                 Language::Elixir => {
-                    self.analyze_elixir(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
+                    self.analyze_elixir(
+                        &content,
+                        &mut file_stats,
+                        &mut file_weak_points,
+                        &rel_path,
+                    )?;
                 }
                 Language::Erlang => {
-                    self.analyze_erlang(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
+                    self.analyze_erlang(
+                        &content,
+                        &mut file_stats,
+                        &mut file_weak_points,
+                        &rel_path,
+                    )?;
                 }
                 Language::Gleam => {
-                    self.analyze_gleam(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
+                    self.analyze_gleam(
+                        &content,
+                        &mut file_stats,
+                        &mut file_weak_points,
+                        &rel_path,
+                    )?;
                 }
                 // ML family
                 Language::ReScript => {
-                    self.analyze_rescript(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
+                    self.analyze_rescript(
+                        &content,
+                        &mut file_stats,
+                        &mut file_weak_points,
+                        &rel_path,
+                    )?;
                 }
                 Language::OCaml => {
-                    self.analyze_ocaml(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
+                    self.analyze_ocaml(
+                        &content,
+                        &mut file_stats,
+                        &mut file_weak_points,
+                        &rel_path,
+                    )?;
                 }
                 Language::StandardML => {
                     self.analyze_sml(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
@@ -164,14 +204,29 @@ impl Analyzer {
                 }
                 // Functional
                 Language::Haskell => {
-                    self.analyze_haskell(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
+                    self.analyze_haskell(
+                        &content,
+                        &mut file_stats,
+                        &mut file_weak_points,
+                        &rel_path,
+                    )?;
                 }
                 Language::PureScript => {
-                    self.analyze_purescript(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
+                    self.analyze_purescript(
+                        &content,
+                        &mut file_stats,
+                        &mut file_weak_points,
+                        &rel_path,
+                    )?;
                 }
                 // Proof assistants
                 Language::Idris => {
-                    self.analyze_idris(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
+                    self.analyze_idris(
+                        &content,
+                        &mut file_stats,
+                        &mut file_weak_points,
+                        &rel_path,
+                    )?;
                 }
                 Language::Lean => {
                     self.analyze_lean(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
@@ -181,7 +236,12 @@ impl Analyzer {
                 }
                 // Logic programming
                 Language::Prolog | Language::Logtalk | Language::Datalog => {
-                    self.analyze_logic(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
+                    self.analyze_logic(
+                        &content,
+                        &mut file_stats,
+                        &mut file_weak_points,
+                        &rel_path,
+                    )?;
                 }
                 // Systems languages
                 Language::Zig => {
@@ -200,28 +260,61 @@ impl Analyzer {
                     self.analyze_pony(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
                 }
                 Language::DLang => {
-                    self.analyze_dlang(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
+                    self.analyze_dlang(
+                        &content,
+                        &mut file_stats,
+                        &mut file_weak_points,
+                        &rel_path,
+                    )?;
                 }
                 // Config languages
                 Language::Nickel | Language::Nix => {
-                    self.analyze_config(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
+                    self.analyze_config(
+                        &content,
+                        &mut file_stats,
+                        &mut file_weak_points,
+                        &rel_path,
+                    )?;
                 }
                 // Scripting
                 Language::Shell => {
-                    self.analyze_shell(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
+                    self.analyze_shell(
+                        &content,
+                        &mut file_stats,
+                        &mut file_weak_points,
+                        &rel_path,
+                    )?;
                 }
                 Language::Julia => {
-                    self.analyze_julia(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
+                    self.analyze_julia(
+                        &content,
+                        &mut file_stats,
+                        &mut file_weak_points,
+                        &rel_path,
+                    )?;
                 }
                 Language::Lua => {
                     self.analyze_lua(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
                 }
                 // Nextgen DSLs - shared analyzer
-                Language::WokeLang | Language::Eclexia | Language::MyLang
-                | Language::JuliaTheViper | Language::Oblibeny | Language::Anvomidav
-                | Language::AffineScript | Language::Ephapax | Language::BetLang
-                | Language::ErrorLang | Language::VQL | Language::FBQL => {
-                    self.analyze_nextgen_dsl(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
+                Language::WokeLang
+                | Language::Eclexia
+                | Language::MyLang
+                | Language::JuliaTheViper
+                | Language::Oblibeny
+                | Language::Anvomidav
+                | Language::AffineScript
+                | Language::Ephapax
+                | Language::BetLang
+                | Language::ErrorLang
+                | Language::VQL
+                | Language::FBQL => {
+                    self.analyze_nextgen_dsl(
+                        &content,
+                        &mut file_stats,
+                        &mut file_weak_points,
+                        &rel_path,
+                    )?;
                 }
                 Language::Java => {
                     self.analyze_java(&content, &mut file_stats, &mut file_weak_points, &rel_path)?;
@@ -268,6 +361,8 @@ impl Analyzer {
 
         let frameworks = self.detect_frameworks(&files)?;
         let recommended_attacks = self.generate_recommendations(&all_weak_points, &global_stats);
+        let dependency_graph = Self::build_dependency_graph(&file_statistics, &frameworks);
+        let taint_matrix = Self::build_taint_matrix(&all_weak_points, &frameworks);
 
         Ok(AssailReport {
             program_path: self.target.clone(),
@@ -277,6 +372,8 @@ impl Analyzer {
             statistics: global_stats,
             file_statistics,
             recommended_attacks,
+            dependency_graph,
+            taint_matrix,
         })
     }
 
@@ -301,13 +398,32 @@ impl Analyzer {
                 let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
                 // Skip build artifacts, hidden dirs, and dependency dirs
                 if ![
-                    "target", "build", "node_modules", ".git", "vendor",
-                    "_build", "_opam", ".stack-work", "dist-newstyle",
-                    "deps", "_deps", "zig-cache", "zig-out",
-                    ".elixir_ls", ".lexical", "__pycache__",
-                    "ebin", "_checkouts", ".fetch", ".hex",
-                    ".nimble", ".dub", "obj",
-                ].contains(&name) {
+                    "target",
+                    "build",
+                    "node_modules",
+                    ".git",
+                    "vendor",
+                    "_build",
+                    "_opam",
+                    ".stack-work",
+                    "dist-newstyle",
+                    "deps",
+                    "_deps",
+                    "zig-cache",
+                    "zig-out",
+                    ".elixir_ls",
+                    ".lexical",
+                    "__pycache__",
+                    "ebin",
+                    "_checkouts",
+                    ".fetch",
+                    ".hex",
+                    ".nimble",
+                    ".dub",
+                    "obj",
+                ]
+                .contains(&name)
+                {
                     self.walk_directory(&path, files)?;
                 }
             } else if path.is_file() {
@@ -352,10 +468,20 @@ impl Analyzer {
             if path.is_dir() {
                 if name_str.starts_with('.')
                     || [
-                        "target", "node_modules", "vendor", "build",
-                        "_build", "_opam", ".stack-work", "dist-newstyle",
-                        "deps", "zig-cache", "zig-out", "ebin",
-                    ].contains(&name_str)
+                        "target",
+                        "node_modules",
+                        "vendor",
+                        "build",
+                        "_build",
+                        "_opam",
+                        ".stack-work",
+                        "dist-newstyle",
+                        "deps",
+                        "zig-cache",
+                        "zig-out",
+                        "ebin",
+                    ]
+                    .contains(&name_str)
                 {
                     continue;
                 }
@@ -408,7 +534,10 @@ impl Analyzer {
                 category: WeakPointCategory::PanicPath,
                 location: Some(file_path.to_string()),
                 severity: Severity::Medium,
-                description: format!("{} unwrap/expect calls in {}", stats.unwrap_calls, file_path),
+                description: format!(
+                    "{} unwrap/expect calls in {}",
+                    stats.unwrap_calls, file_path
+                ),
                 recommended_attack: vec![AttackAxis::Memory, AttackAxis::Disk],
             });
         }
@@ -700,8 +829,8 @@ impl Analyzer {
         stats.allocation_sites += content.matches("ets:new").count();
 
         // Atom exhaustion
-        let atom_count = content.matches("list_to_atom").count()
-            + content.matches("binary_to_atom").count();
+        let atom_count =
+            content.matches("list_to_atom").count() + content.matches("binary_to_atom").count();
         if atom_count > 0 {
             weak_points.push(WeakPoint {
                 category: WeakPointCategory::AtomExhaustion,
@@ -818,9 +947,7 @@ impl Analyzer {
                 category: WeakPointCategory::PanicPath,
                 location: Some(file_path.to_string()),
                 severity: Severity::Medium,
-                description: format!(
-                    "{} unsafe get calls in {}", unsafe_gets, file_path
-                ),
+                description: format!("{} unsafe get calls in {}", unsafe_gets, file_path),
                 recommended_attack: vec![AttackAxis::Memory],
             });
         }
@@ -903,8 +1030,8 @@ impl Analyzer {
         stats.io_operations += content.matches("BinIO.").count();
 
         // Unsafe operations
-        let unsafe_count = content.matches("Unsafe.").count()
-            + content.matches("MLton.Pointer").count();
+        let unsafe_count =
+            content.matches("Unsafe.").count() + content.matches("MLton.Pointer").count();
         if unsafe_count > 0 {
             stats.unsafe_blocks += unsafe_count;
             weak_points.push(WeakPoint {
@@ -1113,7 +1240,10 @@ impl Analyzer {
                 category: WeakPointCategory::UnsafeCode,
                 location: Some(file_path.to_string()),
                 severity: Severity::Critical,
-                description: format!("{} believe_me (type checker bypass) in {}", believe_count, file_path),
+                description: format!(
+                    "{} believe_me (type checker bypass) in {}",
+                    believe_count, file_path
+                ),
                 recommended_attack: vec![AttackAxis::Memory],
             });
         }
@@ -1151,7 +1281,10 @@ impl Analyzer {
                 category: WeakPointCategory::UnsafeCode,
                 location: Some(file_path.to_string()),
                 severity: Severity::High,
-                description: format!("{} sorry (unproven proposition) in {}", sorry_count, file_path),
+                description: format!(
+                    "{} sorry (unproven proposition) in {}",
+                    sorry_count, file_path
+                ),
                 recommended_attack: vec![AttackAxis::Cpu],
             });
         }
@@ -1201,8 +1334,8 @@ impl Analyzer {
         }
 
         // COMPILED pragma (FFI boundary)
-        let compiled_count = content.matches("{-# COMPILED").count()
-            + content.matches("{-# FOREIGN").count();
+        let compiled_count =
+            content.matches("{-# COMPILED").count() + content.matches("{-# FOREIGN").count();
         stats.unsafe_blocks += compiled_count;
 
         Ok(())
@@ -1223,8 +1356,8 @@ impl Analyzer {
         let assert_count = content.matches("assert(").count()
             + content.matches("assertz(").count()
             + content.matches("asserta(").count();
-        let retract_count = content.matches("retract(").count()
-            + content.matches("retractall(").count();
+        let retract_count =
+            content.matches("retract(").count() + content.matches("retractall(").count();
         stats.allocation_sites += assert_count + retract_count;
 
         if assert_count + retract_count > 5 {
@@ -1234,7 +1367,8 @@ impl Analyzer {
                 severity: Severity::Medium,
                 description: format!(
                     "{} dynamic predicate modifications in {}",
-                    assert_count + retract_count, file_path
+                    assert_count + retract_count,
+                    file_path
                 ),
                 recommended_attack: vec![AttackAxis::Concurrency],
             });
@@ -1364,8 +1498,7 @@ impl Analyzer {
         file_path: &str,
     ) -> Result<()> {
         // Raw pointers
-        let raw_ptr = content.matches("rawptr").count()
-            + content.matches("^").count(); // pointer dereference
+        let raw_ptr = content.matches("rawptr").count() + content.matches("^").count(); // pointer dereference
         stats.unsafe_blocks += content.matches("rawptr").count();
 
         if content.contains("#force_inline") || content.contains("#force_no_inline") {
@@ -1655,8 +1788,7 @@ impl Analyzer {
         }
 
         // ccall / @ccall (FFI)
-        let ccall_count = content.matches("ccall(").count()
-            + content.matches("@ccall").count();
+        let ccall_count = content.matches("ccall(").count() + content.matches("@ccall").count();
         stats.unsafe_blocks += ccall_count;
 
         if ccall_count > 0 {
@@ -1765,8 +1897,7 @@ impl Analyzer {
         }
 
         // Unsafe/unverified blocks
-        let unsafe_count = content.matches("unsafe").count()
-            + content.matches("unchecked").count();
+        let unsafe_count = content.matches("unsafe").count() + content.matches("unchecked").count();
         stats.unsafe_blocks += unsafe_count;
 
         stats.io_operations += content.matches("read").count().min(10); // cap for generic matches
@@ -1788,7 +1919,8 @@ impl Analyzer {
         // HTTP (insecure) URLs - should be HTTPS
         // Count http:// URLs that are NOT localhost/127.0.0.1 (those are fine)
         let http_re = Regex::new(r#"http://[a-zA-Z0-9]"#).unwrap();
-        let http_localhost_re = Regex::new(r#"http://(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])"#).unwrap();
+        let http_localhost_re =
+            Regex::new(r#"http://(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])"#).unwrap();
         let http_total = http_re.find_iter(content).count();
         let http_local = http_localhost_re.find_iter(content).count();
         let http_count = http_total.saturating_sub(http_local);
@@ -1797,10 +1929,7 @@ impl Analyzer {
                 category: WeakPointCategory::InsecureProtocol,
                 location: Some(file_path.to_string()),
                 severity: Severity::Medium,
-                description: format!(
-                    "{} HTTP (non-HTTPS) URLs in {}",
-                    http_count, file_path
-                ),
+                description: format!("{} HTTP (non-HTTPS) URLs in {}", http_count, file_path),
                 recommended_attack: vec![AttackAxis::Network],
             });
         }
@@ -1891,8 +2020,10 @@ impl Analyzer {
             }
 
             // OTP (BEAM supervision trees)
-            if content.contains("GenServer") || content.contains("Supervisor")
-                || content.contains("gen_server") || content.contains("supervisor")
+            if content.contains("GenServer")
+                || content.contains("Supervisor")
+                || content.contains("gen_server")
+                || content.contains("supervisor")
             {
                 frameworks.insert(Framework::OTP);
             }
@@ -1979,5 +2110,90 @@ impl Analyzer {
         recommendations.insert(AttackAxis::Cpu);
 
         recommendations.into_iter().collect()
+    }
+
+    fn build_dependency_graph(
+        file_statistics: &[FileStatistics],
+        frameworks: &[Framework],
+    ) -> DependencyGraph {
+        let mut edges = Vec::new();
+        let mut dir_groups: HashMap<String, Vec<String>> = HashMap::new();
+
+        for stat in file_statistics {
+            let dir = Path::new(&stat.file_path)
+                .parent()
+                .and_then(|p| p.to_str())
+                .unwrap_or(".")
+                .to_string();
+            dir_groups
+                .entry(dir)
+                .or_default()
+                .push(stat.file_path.clone());
+        }
+
+        for (dir, files) in dir_groups {
+            for window in files.windows(2) {
+                if let [from, to] = &window {
+                    edges.push(DependencyEdge {
+                        from: from.clone(),
+                        to: to.clone(),
+                        relation: format!("shared_dir:{}", dir),
+                        weight: 1.0,
+                    });
+                }
+            }
+        }
+
+        for stat in file_statistics {
+            let risk = (stat.unsafe_blocks * 3
+                + stat.panic_sites * 2
+                + stat.unwrap_calls
+                + stat.threading_constructs * 2) as f64;
+            for framework in frameworks {
+                edges.push(DependencyEdge {
+                    from: stat.file_path.clone(),
+                    to: format!("{:?}", framework),
+                    relation: "framework".to_string(),
+                    weight: risk.max(1.0),
+                });
+            }
+        }
+
+        DependencyGraph { edges }
+    }
+
+    fn build_taint_matrix(weak_points: &[WeakPoint], frameworks: &[Framework]) -> TaintMatrix {
+        let mut matrix: HashMap<(WeakPointCategory, AttackAxis), TaintMatrixRow> = HashMap::new();
+
+        for wp in weak_points {
+            for axis in &wp.recommended_attack {
+                let key = (wp.category, *axis);
+                let entry = matrix.entry(key).or_insert_with(|| TaintMatrixRow {
+                    source_category: wp.category,
+                    sink_axis: *axis,
+                    severity_value: Self::severity_value(wp.severity),
+                    files: Vec::new(),
+                    frameworks: frameworks.to_vec(),
+                    relation: format!("{:?}->{:?}", wp.category, axis),
+                });
+                entry
+                    .files
+                    .push(wp.location.clone().unwrap_or_else(|| "unknown".to_string()));
+                entry.severity_value = entry.severity_value.max(Self::severity_value(wp.severity));
+            }
+        }
+
+        TaintMatrix {
+            rows: matrix.into_values().collect(),
+        }
+    }
+
+    fn severity_value(severity: Severity) -> f64 {
+        match severity {
+            Severity::Low => 1.0,
+            Severity::Medium => 2.5,
+            Severity::High => 3.5,
+            Severity::Critical => 5.0,
+        }
     }
 }

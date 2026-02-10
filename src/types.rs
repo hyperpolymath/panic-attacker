@@ -7,6 +7,8 @@
 //! and custom DSL families.
 
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::hash::Hash;
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -177,8 +179,12 @@ impl Language {
             Language::Haskell | Language::PureScript => "functional",
             Language::Idris | Language::Lean | Language::Agda => "proof",
             Language::Prolog | Language::Logtalk | Language::Datalog => "logic",
-            Language::Zig | Language::Ada | Language::Odin
-            | Language::Nim | Language::Pony | Language::DLang => "systems",
+            Language::Zig
+            | Language::Ada
+            | Language::Odin
+            | Language::Nim
+            | Language::Pony
+            | Language::DLang => "systems",
             Language::Nickel | Language::Nix => "config",
             Language::Shell => "shell",
             Language::Julia => "julia",
@@ -190,10 +196,18 @@ impl Language {
             Language::Python => "python",
             Language::JavaScript => "javascript",
             Language::Ruby => "ruby",
-            Language::WokeLang | Language::Eclexia | Language::MyLang
-            | Language::JuliaTheViper | Language::Oblibeny | Language::Anvomidav
-            | Language::AffineScript | Language::Ephapax | Language::BetLang
-            | Language::ErrorLang | Language::VQL | Language::FBQL => "nextgen-dsl",
+            Language::WokeLang
+            | Language::Eclexia
+            | Language::MyLang
+            | Language::JuliaTheViper
+            | Language::Oblibeny
+            | Language::Anvomidav
+            | Language::AffineScript
+            | Language::Ephapax
+            | Language::BetLang
+            | Language::ErrorLang
+            | Language::VQL
+            | Language::FBQL => "nextgen-dsl",
             Language::Unknown => "unknown",
         }
     }
@@ -215,6 +229,21 @@ pub enum Framework {
     OTP,
     Cowboy,
     Unknown,
+}
+
+/// Dependency edge between two files/components
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DependencyEdge {
+    pub from: String,
+    pub to: String,
+    pub relation: String,
+    pub weight: f64,
+}
+
+/// Graph describing upstream/downstream relationships
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct DependencyGraph {
+    pub edges: Vec<DependencyEdge>,
 }
 
 /// Attack axes for stress testing
@@ -252,7 +281,7 @@ pub struct WeakPoint {
     pub recommended_attack: Vec<AttackAxis>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum WeakPointCategory {
     // Original categories
     UncheckedAllocation,
@@ -342,6 +371,10 @@ pub struct AssailReport {
     pub statistics: ProgramStatistics,
     pub file_statistics: Vec<FileStatistics>,
     pub recommended_attacks: Vec<AttackAxis>,
+    #[serde(default)]
+    pub dependency_graph: DependencyGraph,
+    #[serde(default)]
+    pub taint_matrix: TaintMatrix,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -364,6 +397,12 @@ pub struct AttackConfig {
     pub target_programs: Vec<PathBuf>,
     pub data_corpus: Option<PathBuf>,
     pub parallel_attacks: bool,
+    #[serde(default)]
+    pub common_args: Vec<String>,
+    #[serde(default)]
+    pub axis_args: HashMap<AttackAxis, Vec<String>>,
+    #[serde(default)]
+    pub probe_mode: ProbeMode,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -385,12 +424,30 @@ impl IntensityLevel {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ProbeMode {
+    Auto,
+    Always,
+    Never,
+}
+
+impl Default for ProbeMode {
+    fn default() -> Self {
+        ProbeMode::Auto
+    }
+}
+
 /// Attack execution results
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AttackResult {
     pub program: PathBuf,
     pub axis: AttackAxis,
     pub success: bool,
+    #[serde(default)]
+    pub skipped: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skip_reason: Option<String>,
     pub exit_code: Option<i32>,
     pub duration: Duration,
     pub peak_memory: u64,
@@ -415,6 +472,8 @@ pub struct AssaultReport {
     pub total_crashes: usize,
     pub total_signatures: usize,
     pub overall_assessment: OverallAssessment,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timeline: Option<TimelineReport>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -422,6 +481,50 @@ pub struct OverallAssessment {
     pub robustness_score: f64,
     pub critical_issues: Vec<String>,
     pub recommendations: Vec<String>,
+}
+
+/// Timeline metadata for ambush runs.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TimelineReport {
+    pub duration: Duration,
+    pub events: Vec<TimelineEventReport>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TimelineEventReport {
+    pub id: String,
+    pub axis: AttackAxis,
+    pub start_offset: Duration,
+    pub duration: Duration,
+    pub intensity: IntensityLevel,
+    #[serde(default)]
+    pub args: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub peak_memory: Option<u64>,
+    #[serde(default)]
+    pub ran: bool,
+}
+
+/// Matrix rows representing taint source/sink interactions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TaintMatrix {
+    pub rows: Vec<TaintMatrixRow>,
+}
+
+impl Default for TaintMatrix {
+    fn default() -> Self {
+        Self { rows: Vec::new() }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TaintMatrixRow {
+    pub source_category: WeakPointCategory,
+    pub sink_axis: AttackAxis,
+    pub severity_value: f64,
+    pub files: Vec<String>,
+    pub frameworks: Vec<Framework>,
+    pub relation: String,
 }
 
 /// Pattern library entry

@@ -6,7 +6,7 @@
 //! to taint sinks (eval, system calls, SQL queries) using the miniKanren
 //! fact database and forward chaining.
 
-use crate::kanren::core::{FactDB, LogicFact, LogicRule, Term};
+use crate::kanren::core::{FactDB, LogicFact, LogicRule, RuleMetadata, Term};
 use crate::types::*;
 
 /// Categories of taint sources — where untrusted data enters
@@ -148,26 +148,30 @@ impl TaintAnalyzer {
         let files_with_sources: Vec<String> = report
             .weak_points
             .iter()
-            .filter(|wp| matches!(
-                wp.category,
-                WeakPointCategory::CommandInjection
-                    | WeakPointCategory::UnsafeDeserialization
-                    | WeakPointCategory::DynamicCodeExecution
-                    | WeakPointCategory::InsecureProtocol
-            ))
+            .filter(|wp| {
+                matches!(
+                    wp.category,
+                    WeakPointCategory::CommandInjection
+                        | WeakPointCategory::UnsafeDeserialization
+                        | WeakPointCategory::DynamicCodeExecution
+                        | WeakPointCategory::InsecureProtocol
+                )
+            })
             .filter_map(|wp| wp.location.clone())
             .collect();
 
         let files_with_sinks: Vec<String> = report
             .weak_points
             .iter()
-            .filter(|wp| matches!(
-                wp.category,
-                WeakPointCategory::UnsafeCode
-                    | WeakPointCategory::UnsafeFFI
-                    | WeakPointCategory::AtomExhaustion
-                    | WeakPointCategory::PathTraversal
-            ))
+            .filter(|wp| {
+                matches!(
+                    wp.category,
+                    WeakPointCategory::UnsafeCode
+                        | WeakPointCategory::UnsafeFFI
+                        | WeakPointCategory::AtomExhaustion
+                        | WeakPointCategory::PathTraversal
+                )
+            })
             .filter_map(|wp| wp.location.clone())
             .collect();
 
@@ -207,49 +211,43 @@ impl TaintAnalyzer {
     pub fn load_rules(db: &mut FactDB) {
         // Rule: transitive data flow
         // data_flow(A, C) :- data_flow(A, B), data_flow(B, C)
-        db.add_rule(LogicRule {
-            name: "transitive_flow".to_string(),
-            head: LogicFact::new(
-                "data_flow",
-                vec![Term::Var(300), Term::Var(302)],
-            ),
-            body: vec![
+        db.add_rule(LogicRule::with_metadata(
+            "data_flow".into(),
+            LogicFact::new("data_flow", vec![Term::Var(300), Term::Var(302)]),
+            vec![
                 LogicFact::new("data_flow", vec![Term::Var(300), Term::Var(301)]),
                 LogicFact::new("data_flow", vec![Term::Var(301), Term::Var(302)]),
             ],
-            confidence: 0.70,
-        });
+            RuleMetadata::default(),
+        ));
 
         // Rule: taint propagation through data flow
         // tainted_file(Dest, Source) :- taint_source(Src, Source), data_flow(Src, Dest)
-        db.add_rule(LogicRule {
-            name: "taint_propagation".to_string(),
-            head: LogicFact::new(
-                "tainted_file",
-                vec![Term::Var(310), Term::Var(311)],
-            ),
-            body: vec![
+        db.add_rule(LogicRule::with_metadata(
+            "tainted_file".into(),
+            LogicFact::new("tainted_file", vec![Term::Var(310), Term::Var(311)]),
+            vec![
                 LogicFact::new("taint_source", vec![Term::Var(312), Term::Var(311)]),
                 LogicFact::new("data_flow", vec![Term::Var(312), Term::Var(310)]),
             ],
-            confidence: 0.75,
-        });
+            RuleMetadata::default(),
+        ));
 
         // Rule: exploitable path — tainted file has a sink
         // exploitable(File, Source, SinkType) :-
         //   tainted_file(File, Source), taint_sink(File, SinkType)
-        db.add_rule(LogicRule {
-            name: "exploitable_path".to_string(),
-            head: LogicFact::new(
+        db.add_rule(LogicRule::with_metadata(
+            "exploitable".into(),
+            LogicFact::new(
                 "exploitable",
                 vec![Term::Var(320), Term::Var(321), Term::Var(322)],
             ),
-            body: vec![
+            vec![
                 LogicFact::new("tainted_file", vec![Term::Var(320), Term::Var(321)]),
                 LogicFact::new("taint_sink", vec![Term::Var(320), Term::Var(322)]),
             ],
-            confidence: 0.80,
-        });
+            RuleMetadata::default(),
+        ));
     }
 
     /// Query the database for discovered taint flows
@@ -258,8 +256,12 @@ impl TaintAnalyzer {
 
         for fact in db.get_facts("tainted_path") {
             if fact.args.len() >= 4 {
-                if let (Term::Atom(src_file), Term::Atom(source), Term::Atom(sink_file), Term::Atom(sink)) =
-                    (&fact.args[0], &fact.args[1], &fact.args[2], &fact.args[3])
+                if let (
+                    Term::Atom(src_file),
+                    Term::Atom(source),
+                    Term::Atom(sink_file),
+                    Term::Atom(sink),
+                ) = (&fact.args[0], &fact.args[1], &fact.args[2], &fact.args[3])
                 {
                     flows.push(TaintFlow {
                         source: Self::parse_source(source),
@@ -355,9 +357,12 @@ mod tests {
 
         // Load rules and chain
         TaintAnalyzer::load_rules(&mut db);
-        let derived = db.forward_chain();
+        let (derived, _) = db.forward_chain();
 
-        assert!(derived > 0, "should derive tainted_file and exploitable facts");
+        assert!(
+            derived > 0,
+            "should derive tainted_file and exploitable facts"
+        );
         assert!(db.fact_count("tainted_file") > 0);
     }
 }

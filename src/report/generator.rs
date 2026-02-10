@@ -32,6 +32,7 @@ impl ReportGenerator {
             total_crashes,
             total_signatures,
             overall_assessment,
+            timeline: None,
         })
     }
 

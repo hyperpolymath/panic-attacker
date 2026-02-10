@@ -65,7 +65,8 @@ Version: 1.0 (stable as of v1.0.0)
   "attack_results": [AttackResult],
   "total_crashes": "number",
   "total_signatures": "number",
-  "overall_assessment": OverallAssessment
+  "overall_assessment": OverallAssessment,
+  "timeline": "TimelineReport|null"
 }
 ```
 
@@ -114,6 +115,30 @@ Version: 1.0 (stable as of v1.0.0)
   "robustness_score": "number (0.0-100.0)",
   "critical_issues": ["string"],
   "recommendations": ["string"]
+}
+```
+
+## TimelineReport (optional)
+
+```json
+{
+  "duration": {"secs": "number", "nanos": "number"},
+  "events": [TimelineEventReport]
+}
+```
+
+## TimelineEventReport
+
+```json
+{
+  "id": "string",
+  "axis": "string (cpu|memory|disk|network|concurrency|time)",
+  "start_offset": {"secs": "number", "nanos": "number"},
+  "duration": {"secs": "number", "nanos": "number"},
+  "intensity": "string (Light|Medium|Heavy|Extreme)",
+  "args": ["string"],
+  "peak_memory": "number|null (bytes)",
+  "ran": "boolean"
 }
 ```
 
