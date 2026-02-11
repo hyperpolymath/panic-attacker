@@ -1,0 +1,29 @@
+{
+  "format": "panll.event-chain.v0",
+  "generated_at": "2026-02-11T18:01:03.133146189+00:00",
+  "source": {
+    "tool": "panic-attack",
+    "report_path": "reports/panic-attack-20260211180017.json"
+  },
+  "summary": {
+    "program": "target/release/examples/vulnerable_program",
+    "weak_points": 0,
+    "critical_weak_points": 0,
+    "total_crashes": 0,
+    "robustness_score": 100.0
+  },
+  "timeline": null,
+  "event_chain": [
+    {
+      "id": "attack-cpu-1",
+      "axis": "cpu",
+      "start_ms": null,
+      "duration_ms": 143,
+      "intensity": "unknown",
+      "status": "passed",
+      "peak_memory": 0,
+      "notes": null
+    }
+  ],
+  "constraints": []
+}

@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+
+ARG RUST_BUILDER_IMAGE=cgr.dev/chainguard/rust:latest
+ARG RUST_RUNTIME_IMAGE=cgr.dev/chainguard/distroless-rust:latest
+
+FROM ${RUST_BUILDER_IMAGE} AS build
+WORKDIR /workspace
+
+COPY Cargo.toml Cargo.lock ./
+COPY . .
+
+RUN cargo fetch --locked && \
+    cargo build --release
+
+FROM ${RUST_RUNTIME_IMAGE} AS runtime
+WORKDIR /app
+
+COPY --from=build /workspace/target/release/panic-attack /usr/local/bin/panic-attack
+
+RUN mkdir -p /usr/local/share/man/man1
+COPY man/panic-attack.1 /usr/local/share/man/man1/
+
+EXPOSE 8080
+
+ENTRYPOINT ["/usr/local/bin/panic-attack"]
+CMD ["--help"]

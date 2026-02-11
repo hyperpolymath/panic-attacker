@@ -236,7 +236,9 @@ fn start_stressor(axis: AttackAxis, intensity: IntensityLevel, duration: Duratio
 
     let threads = match axis {
         AttackAxis::Cpu => spawn_cpu_stress(stop.clone(), deadline, intensity),
-        AttackAxis::Memory => spawn_memory_stress(stop.clone(), deadline, intensity, peak_memory.clone()),
+        AttackAxis::Memory => {
+            spawn_memory_stress(stop.clone(), deadline, intensity, peak_memory.clone())
+        }
         AttackAxis::Disk => spawn_disk_stress(stop.clone(), deadline, intensity),
         AttackAxis::Network => spawn_network_stress(stop.clone(), deadline, intensity),
         AttackAxis::Concurrency => spawn_concurrency_stress(stop.clone(), deadline, intensity),
@@ -326,10 +328,7 @@ fn spawn_disk_stress(
     intensity: IntensityLevel,
 ) -> Vec<JoinHandle<()>> {
     vec![thread::spawn(move || {
-        let root = std::env::temp_dir().join(format!(
-            "panic-attack-ambush-{}",
-            std::process::id()
-        ));
+        let root = std::env::temp_dir().join(format!("panic-attack-ambush-{}", std::process::id()));
         let _ = fs::create_dir_all(&root);
         let files_per_cycle = (25.0 * intensity.multiplier()).max(1.0) as usize;
         let payload = vec![0xA5_u8; 128 * 1024];
@@ -358,7 +357,9 @@ fn spawn_network_stress(
     intensity: IntensityLevel,
 ) -> Vec<JoinHandle<()>> {
     let listener = TcpListener::bind("127.0.0.1:0");
-    let Ok(listener) = listener else { return Vec::new() };
+    let Ok(listener) = listener else {
+        return Vec::new();
+    };
     let addr = match listener.local_addr() {
         Ok(addr) => addr,
         Err(_) => return Vec::new(),

@@ -128,10 +128,15 @@ fn export_report(report: &AssaultReport, report_path: Option<&Path>) -> PanllExp
     }
 }
 
-pub fn write_export(report: &AssaultReport, report_path: Option<&Path>, output: &Path) -> Result<()> {
+pub fn write_export(
+    report: &AssaultReport,
+    report_path: Option<&Path>,
+    output: &Path,
+) -> Result<()> {
     let export = export_report(report, report_path);
     let json = serde_json::to_string_pretty(&export)?;
-    fs::write(output, json).with_context(|| format!("writing panll export {}", output.display()))?;
+    fs::write(output, json)
+        .with_context(|| format!("writing panll export {}", output.display()))?;
     Ok(())
 }
 

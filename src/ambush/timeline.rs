@@ -69,11 +69,14 @@ pub fn load_timeline_with_default(
     build_plan(spec, default_intensity)
 }
 
-fn build_plan(spec: TimelineSpec, default_intensity: Option<IntensityLevel>) -> Result<TimelinePlan> {
+fn build_plan(
+    spec: TimelineSpec,
+    default_intensity: Option<IntensityLevel>,
+) -> Result<TimelinePlan> {
     let mut events = Vec::new();
     for track in spec.tracks {
-        let axis = parse_axis(&track.axis)
-            .ok_or_else(|| anyhow!("unknown axis '{}'", track.axis))?;
+        let axis =
+            parse_axis(&track.axis).ok_or_else(|| anyhow!("unknown axis '{}'", track.axis))?;
         for (index, event) in track.events.into_iter().enumerate() {
             let id = event
                 .id
@@ -81,8 +84,9 @@ fn build_plan(spec: TimelineSpec, default_intensity: Option<IntensityLevel>) -> 
             let start_offset = parse_duration(&event.at)?;
             let duration = parse_duration(&event.for_duration)?;
             let intensity = match event.intensity {
-                Some(raw) => parse_intensity(&raw)
-                    .ok_or_else(|| anyhow!("unknown intensity '{}'", raw))?,
+                Some(raw) => {
+                    parse_intensity(&raw).ok_or_else(|| anyhow!("unknown intensity '{}'", raw))?
+                }
                 None => default_intensity.unwrap_or(IntensityLevel::Medium),
             };
             events.push(TimelineEventPlan {

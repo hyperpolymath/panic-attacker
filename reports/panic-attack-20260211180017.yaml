@@ -1,0 +1,48 @@
+assail_report:
+  program_path: target/release/examples/vulnerable_program
+  language: unknown
+  frameworks: []
+  weak_points: []
+  statistics:
+    total_lines: 786
+    unsafe_blocks: 0
+    panic_sites: 0
+    unwrap_calls: 0
+    allocation_sites: 266
+    io_operations: 4
+    threading_constructs: 126
+  file_statistics:
+  - file_path: vulnerable_program
+    lines: 786
+    unsafe_blocks: 0
+    panic_sites: 0
+    unwrap_calls: 0
+    allocation_sites: 266
+    io_operations: 4
+    threading_constructs: 126
+  recommended_attacks:
+  - concurrency
+  - memory
+  - cpu
+  dependency_graph:
+    edges: []
+  taint_matrix:
+    rows: []
+attack_results:
+- program: target/release/examples/vulnerable_program
+  axis: cpu
+  success: true
+  skipped: false
+  exit_code: 0
+  duration:
+    secs: 0
+    nanos: 143171163
+  peak_memory: 0
+  crashes: []
+  signatures_detected: []
+total_crashes: 0
+total_signatures: 0
+overall_assessment:
+  robustness_score: 100.0
+  critical_issues: []
+  recommendations: []
