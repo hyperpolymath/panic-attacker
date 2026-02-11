@@ -267,7 +267,7 @@ impl FactDB {
             new_facts.clear();
 
             for rule in &self.rules {
-                // Try to match all body facts
+                // Evaluate each rule against the current fixpoint snapshot.
                 let matches = self.match_body(&rule.body);
                 let mut derived_this_rule = 0;
 
@@ -291,6 +291,7 @@ impl FactDB {
                 }
             }
 
+            // Reaching zero derivations means the fact set is at a stable fixpoint.
             if new_facts.is_empty() {
                 break;
             }
@@ -310,16 +311,17 @@ impl FactDB {
             return vec![Substitution::new()];
         }
 
+        // Start with the empty substitution and progressively constrain it per body atom.
         let mut current_substs = vec![Substitution::new()];
 
         for body_fact in body {
             let mut next_substs = Vec::new();
 
             for subst in &current_substs {
-                // Apply current substitution to body fact
+                // Resolve currently known bindings before matching the next relation.
                 let resolved_fact = self.apply_substitution_to_fact(body_fact, subst);
 
-                // Find matching database facts
+                // Attempt unification against all facts with compatible relation/arity.
                 for db_fact in &self.facts {
                     if db_fact.relation != resolved_fact.relation
                         || db_fact.args.len() != resolved_fact.args.len()
@@ -391,6 +393,8 @@ impl LogicEngine {
 
     /// Extract facts from an Assail report
     pub fn ingest_report(&mut self, report: &AssailReport) {
+        // Ingestion normalizes static report output into relational facts.
+        // Downstream taint/cross-language analyzers assume this canonical shape.
         // Assert language fact
         self.db.assert_fact(LogicFact::new(
             "language",
@@ -517,6 +521,7 @@ impl LogicEngine {
         self.load_standard_rules();
         let (derived, _) = self.db.forward_chain();
 
+        // Result metrics are relation-cardinality snapshots used for triage dashboards.
         let tainted_paths = self.db.get_facts("tainted_path").len();
         let critical_vulns = self.db.get_facts("critical_vuln").len();
         let high_vulns = self.db.get_facts("high_vuln").len();

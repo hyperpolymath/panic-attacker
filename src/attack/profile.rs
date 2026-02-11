@@ -25,6 +25,7 @@ impl AttackProfile {
     pub fn load(path: &Path) -> Result<Self> {
         let content = fs::read_to_string(path)
             .with_context(|| format!("reading attack profile {}", path.display()))?;
+        // Extension-based dispatch is explicit to avoid ambiguous parsing behavior.
         match path.extension().and_then(|ext| ext.to_str()) {
             Some("json") => serde_json::from_str(&content)
                 .with_context(|| format!("parsing json attack profile {}", path.display())),

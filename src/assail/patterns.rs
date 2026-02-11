@@ -55,6 +55,8 @@ impl PatternDetector {
             }
         }
 
+        // We intentionally do not deduplicate here; repeated hits can indicate
+        // that both language and framework heuristics agree on the same pressure point.
         patterns
     }
 

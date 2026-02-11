@@ -5,10 +5,123 @@
 use crate::report::formatter::nickel_escape_string;
 use crate::report::ReportOutputFormat;
 use crate::storage::StorageMode;
+use crate::types::{AssailReport, AssaultReport, AttackResult};
+use crate::{abduct, adjudicate, amuck, audience};
 use anyhow::{anyhow, Context, Result};
+use serde::de::DeserializeOwned;
 use serde_json;
 use std::fs;
 use std::path::{Path, PathBuf};
+
+const REPORT_BUNDLE_SCHEMA: &str = "panic-attack.report-bundle";
+const REPORT_BUNDLE_VERSION: u32 = 1;
+const REPORT_BUNDLE_ENCODING: &str = "json";
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ReportBundleKind {
+    Assail,
+    Attack,
+    Assault,
+    Ambush,
+    Amuck,
+    Abduct,
+    Adjudicate,
+    Audience,
+}
+
+impl ReportBundleKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Assail => "assail",
+            Self::Attack => "attack",
+            Self::Assault => "assault",
+            Self::Ambush => "ambush",
+            Self::Amuck => "amuck",
+            Self::Abduct => "abduct",
+            Self::Adjudicate => "adjudicate",
+            Self::Audience => "audience",
+        }
+    }
+
+    pub fn parse(value: &str) -> Option<Self> {
+        match value.trim().to_ascii_lowercase().as_str() {
+            "assail" => Some(Self::Assail),
+            "attack" => Some(Self::Attack),
+            "assault" => Some(Self::Assault),
+            "ambush" => Some(Self::Ambush),
+            "amuck" => Some(Self::Amuck),
+            "abduct" => Some(Self::Abduct),
+            "adjudicate" => Some(Self::Adjudicate),
+            "audience" => Some(Self::Audience),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum ReportBundlePayload {
+    Assail(AssailReport),
+    Attack(Vec<AttackResult>),
+    Assault(AssaultReport),
+    Ambush(AssaultReport),
+    Amuck(amuck::AmuckReport),
+    Abduct(abduct::AbductReport),
+    Adjudicate(adjudicate::AdjudicateReport),
+    Audience(audience::AudienceReport),
+}
+
+impl ReportBundlePayload {
+    pub fn kind(&self) -> ReportBundleKind {
+        match self {
+            Self::Assail(_) => ReportBundleKind::Assail,
+            Self::Attack(_) => ReportBundleKind::Attack,
+            Self::Assault(_) => ReportBundleKind::Assault,
+            Self::Ambush(_) => ReportBundleKind::Ambush,
+            Self::Amuck(_) => ReportBundleKind::Amuck,
+            Self::Abduct(_) => ReportBundleKind::Abduct,
+            Self::Adjudicate(_) => ReportBundleKind::Adjudicate,
+            Self::Audience(_) => ReportBundleKind::Audience,
+        }
+    }
+
+    pub fn to_json_string(&self) -> Result<String> {
+        let encoded = match self {
+            Self::Assail(v) => serde_json::to_string(v),
+            Self::Attack(v) => serde_json::to_string(v),
+            Self::Assault(v) => serde_json::to_string(v),
+            Self::Ambush(v) => serde_json::to_string(v),
+            Self::Amuck(v) => serde_json::to_string(v),
+            Self::Abduct(v) => serde_json::to_string(v),
+            Self::Adjudicate(v) => serde_json::to_string(v),
+            Self::Audience(v) => serde_json::to_string(v),
+        }
+        .context("serializing report payload as json")?;
+        Ok(encoded)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ReportBundle {
+    pub schema: String,
+    pub version: u32,
+    pub exported_at: String,
+    pub payload: ReportBundlePayload,
+}
+
+impl ReportBundle {
+    pub fn new(payload: ReportBundlePayload) -> Self {
+        Self {
+            schema: REPORT_BUNDLE_SCHEMA.to_string(),
+            version: REPORT_BUNDLE_VERSION,
+            exported_at: chrono::Utc::now().to_rfc3339(),
+            payload,
+        }
+    }
+
+    pub fn kind(&self) -> ReportBundleKind {
+        self.payload.kind()
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct Manifest {
@@ -111,6 +224,239 @@ impl Manifest {
             None
         })
     }
+}
+
+pub fn write_report_bundle(bundle: &ReportBundle, path: &Path) -> Result<()> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)
+            .with_context(|| format!("creating report-bundle parent {}", parent.display()))?;
+    }
+    let rendered = render_report_bundle(bundle)?;
+    fs::write(path, rendered).with_context(|| format!("writing {}", path.display()))?;
+    Ok(())
+}
+
+pub fn read_report_bundle(path: &Path) -> Result<ReportBundle> {
+    let raw = fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
+    parse_report_bundle(&raw)
+}
+
+pub fn export_report_file(kind: ReportBundleKind, input: &Path, output: &Path) -> Result<()> {
+    let payload = load_payload_for_kind(kind, input)?;
+    let bundle = ReportBundle::new(payload);
+    write_report_bundle(&bundle, output)?;
+    Ok(())
+}
+
+pub fn import_report_file(input: &Path, output: &Path) -> Result<ReportBundleKind> {
+    if let Some(parent) = output.parent() {
+        fs::create_dir_all(parent)
+            .with_context(|| format!("creating import parent {}", parent.display()))?;
+    }
+    let bundle = read_report_bundle(input)?;
+    let json = match &bundle.payload {
+        ReportBundlePayload::Assail(v) => serde_json::to_string_pretty(v),
+        ReportBundlePayload::Attack(v) => serde_json::to_string_pretty(v),
+        ReportBundlePayload::Assault(v) => serde_json::to_string_pretty(v),
+        ReportBundlePayload::Ambush(v) => serde_json::to_string_pretty(v),
+        ReportBundlePayload::Amuck(v) => serde_json::to_string_pretty(v),
+        ReportBundlePayload::Abduct(v) => serde_json::to_string_pretty(v),
+        ReportBundlePayload::Adjudicate(v) => serde_json::to_string_pretty(v),
+        ReportBundlePayload::Audience(v) => serde_json::to_string_pretty(v),
+    }
+    .context("serializing imported report")?;
+    fs::write(output, json).with_context(|| format!("writing {}", output.display()))?;
+    Ok(bundle.kind())
+}
+
+fn load_payload_for_kind(kind: ReportBundleKind, input: &Path) -> Result<ReportBundlePayload> {
+    Ok(match kind {
+        ReportBundleKind::Assail => {
+            ReportBundlePayload::Assail(load_json_or_yaml::<AssailReport>(input)?)
+        }
+        ReportBundleKind::Attack => ReportBundlePayload::Attack(load_attack_results(input)?),
+        ReportBundleKind::Assault => {
+            let report = crate::report::load_report(input)?;
+            ReportBundlePayload::Assault(report)
+        }
+        ReportBundleKind::Ambush => {
+            let report = crate::report::load_report(input)?;
+            ReportBundlePayload::Ambush(report)
+        }
+        ReportBundleKind::Amuck => {
+            ReportBundlePayload::Amuck(load_json_or_yaml::<amuck::AmuckReport>(input)?)
+        }
+        ReportBundleKind::Abduct => {
+            ReportBundlePayload::Abduct(load_json_or_yaml::<abduct::AbductReport>(input)?)
+        }
+        ReportBundleKind::Adjudicate => ReportBundlePayload::Adjudicate(load_json_or_yaml::<
+            adjudicate::AdjudicateReport,
+        >(input)?),
+        ReportBundleKind::Audience => {
+            ReportBundlePayload::Audience(load_json_or_yaml::<audience::AudienceReport>(input)?)
+        }
+    })
+}
+
+fn load_json_or_yaml<T: DeserializeOwned>(path: &Path) -> Result<T> {
+    let raw = fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
+    match path.extension().and_then(|e| e.to_str()) {
+        Some("yaml") | Some("yml") => {
+            serde_yaml::from_str::<T>(&raw).with_context(|| format!("parsing {}", path.display()))
+        }
+        _ => serde_json::from_str::<T>(&raw).with_context(|| format!("parsing {}", path.display())),
+    }
+}
+
+fn load_attack_results(path: &Path) -> Result<Vec<AttackResult>> {
+    #[derive(serde::Deserialize)]
+    struct AttackWrapper {
+        attack_results: Vec<AttackResult>,
+    }
+
+    let raw = fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
+    if let Ok(results) = serde_json::from_str::<Vec<AttackResult>>(&raw) {
+        return Ok(results);
+    }
+    if let Ok(wrapper) = serde_json::from_str::<AttackWrapper>(&raw) {
+        return Ok(wrapper.attack_results);
+    }
+    if let Ok(results) = serde_yaml::from_str::<Vec<AttackResult>>(&raw) {
+        return Ok(results);
+    }
+    if let Ok(wrapper) = serde_yaml::from_str::<AttackWrapper>(&raw) {
+        return Ok(wrapper.attack_results);
+    }
+    Err(anyhow!(
+        "failed to parse {} as attack results array",
+        path.display()
+    ))
+}
+
+fn render_report_bundle(bundle: &ReportBundle) -> Result<String> {
+    if bundle.schema != REPORT_BUNDLE_SCHEMA {
+        return Err(anyhow!(
+            "unsupported report bundle schema: {}",
+            bundle.schema
+        ));
+    }
+    let payload_json = bundle.payload.to_json_string()?;
+    Ok(format!(
+        "(panic_attack_report_bundle\n  (schema {})\n  (version \"{}\")\n  (kind \"{}\")\n  (exported_at {})\n  (encoding \"{}\")\n  (payload {})\n)\n",
+        quote_atom(&bundle.schema),
+        bundle.version,
+        bundle.kind().as_str(),
+        quote_atom(&bundle.exported_at),
+        REPORT_BUNDLE_ENCODING,
+        quote_atom(&payload_json)
+    ))
+}
+
+fn parse_report_bundle(raw: &str) -> Result<ReportBundle> {
+    let mut parser = Parser::new(raw);
+    let tree = parser.parse_all()?;
+    let (root, entries) = match tree {
+        Sexpr::List(items) => {
+            if items.is_empty() {
+                return Err(anyhow!("empty report bundle"));
+            }
+            let root = match &items[0] {
+                Sexpr::Atom(v) => v.clone(),
+                _ => return Err(anyhow!("invalid report bundle root")),
+            };
+            (root, gather_entries(&items[1..]))
+        }
+        _ => return Err(anyhow!("invalid report bundle form")),
+    };
+
+    if root != "panic_attack_report_bundle" {
+        return Err(anyhow!("unsupported report bundle root '{}'", root));
+    }
+    let schema = entry_string(&entries, "schema")?;
+    if schema != REPORT_BUNDLE_SCHEMA {
+        return Err(anyhow!("unsupported report bundle schema '{}'", schema));
+    }
+    let version_raw = entry_string(&entries, "version")?;
+    let version = version_raw
+        .parse::<u32>()
+        .with_context(|| format!("parsing report bundle version '{}'", version_raw))?;
+    if version != REPORT_BUNDLE_VERSION {
+        return Err(anyhow!(
+            "unsupported report bundle version {} (expected {})",
+            version,
+            REPORT_BUNDLE_VERSION
+        ));
+    }
+
+    let kind_raw = entry_string(&entries, "kind")?;
+    let kind = ReportBundleKind::parse(&kind_raw)
+        .ok_or_else(|| anyhow!("unsupported report bundle kind '{}'", kind_raw))?;
+    let encoding = entry_string(&entries, "encoding")?;
+    if encoding != REPORT_BUNDLE_ENCODING {
+        return Err(anyhow!("unsupported report encoding '{}'", encoding));
+    }
+    let payload_json = entry_string(&entries, "payload")?;
+    let payload = parse_payload(kind, &payload_json)?;
+    let exported_at =
+        entry_string(&entries, "exported_at").unwrap_or_else(|_| chrono::Utc::now().to_rfc3339());
+
+    Ok(ReportBundle {
+        schema,
+        version,
+        exported_at,
+        payload,
+    })
+}
+
+fn parse_payload(kind: ReportBundleKind, payload_json: &str) -> Result<ReportBundlePayload> {
+    Ok(match kind {
+        ReportBundleKind::Assail => {
+            ReportBundlePayload::Assail(serde_json::from_str::<AssailReport>(payload_json)?)
+        }
+        ReportBundleKind::Attack => {
+            ReportBundlePayload::Attack(serde_json::from_str::<Vec<AttackResult>>(payload_json)?)
+        }
+        ReportBundleKind::Assault => {
+            ReportBundlePayload::Assault(serde_json::from_str::<AssaultReport>(payload_json)?)
+        }
+        ReportBundleKind::Ambush => {
+            ReportBundlePayload::Ambush(serde_json::from_str::<AssaultReport>(payload_json)?)
+        }
+        ReportBundleKind::Amuck => {
+            ReportBundlePayload::Amuck(serde_json::from_str::<amuck::AmuckReport>(payload_json)?)
+        }
+        ReportBundleKind::Abduct => {
+            ReportBundlePayload::Abduct(serde_json::from_str::<abduct::AbductReport>(payload_json)?)
+        }
+        ReportBundleKind::Adjudicate => ReportBundlePayload::Adjudicate(serde_json::from_str::<
+            adjudicate::AdjudicateReport,
+        >(payload_json)?),
+        ReportBundleKind::Audience => ReportBundlePayload::Audience(serde_json::from_str::<
+            audience::AudienceReport,
+        >(payload_json)?),
+    })
+}
+
+fn entry_string(entries: &[(String, Vec<Vec<Sexpr>>)], key: &str) -> Result<String> {
+    let groups = entries
+        .iter()
+        .find(|(k, _)| k == key)
+        .map(|(_, groups)| groups)
+        .ok_or_else(|| anyhow!("missing '{}' entry in report bundle", key))?;
+    let values = groups
+        .first()
+        .ok_or_else(|| anyhow!("empty '{}' entry in report bundle", key))?;
+    let first = values
+        .first()
+        .ok_or_else(|| anyhow!("empty '{}' value in report bundle", key))?;
+    match first {
+        Sexpr::String(v) | Sexpr::Atom(v) => Ok(v.clone()),
+        Sexpr::List(_) => Err(anyhow!("invalid '{}' value in report bundle", key)),
+    }
+}
+
+fn quote_atom(value: &str) -> String {
+    serde_json::to_string(value).unwrap_or_else(|_| format!("\"{}\"", value))
 }
 
 #[derive(Clone, Debug)]
@@ -350,5 +696,474 @@ fn key_to_nickel(key: &str) -> String {
         key.to_string()
     } else {
         serde_json::to_string(key).unwrap_or_else(|_| format!("\"{}\"", key))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::{
+        AttackAxis, BugSignature, CrashReport, DependencyGraph, FileStatistics, Framework,
+        Language, OverallAssessment, ProgramStatistics, Severity, SignatureType, TaintMatrix,
+        TimelineEventReport, TimelineReport, WeakPoint, WeakPointCategory,
+    };
+    use std::collections::BTreeMap;
+    use std::path::PathBuf;
+    use std::time::Duration;
+    use tempfile::TempDir;
+
+    fn sample_assail_report() -> AssailReport {
+        AssailReport {
+            program_path: PathBuf::from("src/main.rs"),
+            language: Language::Rust,
+            frameworks: vec![Framework::Unknown],
+            weak_points: vec![WeakPoint {
+                category: WeakPointCategory::UncheckedError,
+                location: Some("src/main.rs:10".to_string()),
+                severity: Severity::Medium,
+                description: "unchecked result".to_string(),
+                recommended_attack: vec![AttackAxis::Concurrency],
+            }],
+            statistics: ProgramStatistics {
+                total_lines: 42,
+                unsafe_blocks: 0,
+                panic_sites: 0,
+                unwrap_calls: 0,
+                allocation_sites: 0,
+                io_operations: 0,
+                threading_constructs: 0,
+            },
+            file_statistics: vec![FileStatistics {
+                file_path: "src/main.rs".to_string(),
+                lines: 42,
+                unsafe_blocks: 0,
+                panic_sites: 0,
+                unwrap_calls: 0,
+                allocation_sites: 0,
+                io_operations: 0,
+                threading_constructs: 0,
+            }],
+            recommended_attacks: vec![AttackAxis::Concurrency],
+            dependency_graph: DependencyGraph::default(),
+            taint_matrix: TaintMatrix::default(),
+        }
+    }
+
+    fn sample_attack_results() -> Vec<AttackResult> {
+        vec![AttackResult {
+            program: PathBuf::from("./bin/target"),
+            axis: AttackAxis::Cpu,
+            success: false,
+            skipped: false,
+            skip_reason: None,
+            exit_code: Some(1),
+            duration: Duration::from_secs(1),
+            peak_memory: 1024,
+            crashes: vec![CrashReport {
+                timestamp: "2026-01-01T00:00:00Z".to_string(),
+                signal: Some("SIGABRT".to_string()),
+                backtrace: None,
+                stderr: "panic".to_string(),
+                stdout: String::new(),
+            }],
+            signatures_detected: vec![BugSignature {
+                signature_type: SignatureType::UnhandledError,
+                confidence: 0.5,
+                evidence: vec!["stderr panic".to_string()],
+                location: Some("main".to_string()),
+            }],
+        }]
+    }
+
+    fn sample_ambush_report() -> AssaultReport {
+        AssaultReport {
+            assail_report: sample_assail_report(),
+            attack_results: sample_attack_results(),
+            total_crashes: 1,
+            total_signatures: 1,
+            overall_assessment: OverallAssessment {
+                robustness_score: 25.0,
+                critical_issues: vec!["crash".to_string()],
+                recommendations: vec!["review time axis".to_string()],
+            },
+            timeline: Some(TimelineReport {
+                duration: Duration::from_secs(30),
+                events: vec![TimelineEventReport {
+                    id: "evt-1".to_string(),
+                    axis: AttackAxis::Memory,
+                    start_offset: Duration::from_secs(5),
+                    duration: Duration::from_secs(10),
+                    intensity: crate::types::IntensityLevel::Medium,
+                    args: vec!["--foo".to_string()],
+                    peak_memory: Some(1000),
+                    ran: true,
+                }],
+            }),
+        }
+    }
+
+    fn sample_assault_report() -> AssaultReport {
+        let mut report = sample_ambush_report();
+        report.timeline = None;
+        report
+    }
+
+    fn sample_amuck_report() -> amuck::AmuckReport {
+        amuck::AmuckReport {
+            created_at: chrono::Utc::now().to_rfc3339(),
+            target: PathBuf::from("src/main.rs"),
+            source_spec: None,
+            preset: "dangerous".to_string(),
+            max_combinations: 2,
+            output_dir: PathBuf::from("runtime/amuck"),
+            combinations_planned: 2,
+            combinations_run: 1,
+            outcomes: vec![amuck::AmuckOutcome {
+                id: 1,
+                name: "flip".to_string(),
+                operations: vec!["replace_first(true->false)".to_string()],
+                applied_changes: 1,
+                mutated_file: Some(PathBuf::from("runtime/amuck/main.amuck.001.rs")),
+                apply_error: None,
+                execution: Some(amuck::ExecutionOutcome {
+                    success: false,
+                    exit_code: Some(1),
+                    duration_ms: 12,
+                    stdout: String::new(),
+                    stderr: "compile error".to_string(),
+                    spawn_error: None,
+                }),
+            }],
+        }
+    }
+
+    fn sample_abduct_report() -> abduct::AbductReport {
+        abduct::AbductReport {
+            created_at: chrono::Utc::now().to_rfc3339(),
+            target: PathBuf::from("src/main.rs"),
+            source_root: PathBuf::from("src"),
+            workspace_dir: PathBuf::from("runtime/abduct/abduct-20260101000000"),
+            dependency_scope: "direct".to_string(),
+            selected_files: 2,
+            locked_files: 2,
+            mtime_shifted_files: 2,
+            mtime_offset_days: 14,
+            time_mode: "slow".to_string(),
+            time_scale: Some(0.1),
+            virtual_now: Some("2026-01-01T00:00:00Z".to_string()),
+            notes: vec!["sample abduct note".to_string()],
+            files: vec![abduct::AbductFileRecord {
+                source: PathBuf::from("src/main.rs"),
+                destination: PathBuf::from("runtime/abduct/abduct-20260101000000/src/main.rs"),
+                relative_path: "src/main.rs".to_string(),
+                locked: true,
+                mtime_shifted: true,
+            }],
+            execution: Some(abduct::ExecutionOutcome {
+                success: true,
+                exit_code: Some(0),
+                duration_ms: 20,
+                timed_out: false,
+                stdout: "ok".to_string(),
+                stderr: String::new(),
+                spawn_error: None,
+            }),
+        }
+    }
+
+    fn sample_adjudicate_report() -> adjudicate::AdjudicateReport {
+        adjudicate::AdjudicateReport {
+            created_at: chrono::Utc::now().to_rfc3339(),
+            reports: vec![
+                PathBuf::from("reports/a.json"),
+                PathBuf::from("reports/b.json"),
+            ],
+            processed_reports: 2,
+            failed_reports: 0,
+            verdict: "warn".to_string(),
+            totals: adjudicate::AdjudicateTotals {
+                assault_reports: 1,
+                amuck_reports: 1,
+                abduct_reports: 0,
+                total_crashes: 1,
+                total_signatures: 1,
+                critical_weak_points: 0,
+                failed_attacks: 1,
+                mutation_apply_errors: 0,
+                mutation_exec_failures: 1,
+                abduct_exec_failures: 0,
+                abduct_timeouts: 0,
+            },
+            rule_hits: vec![adjudicate::RuleHit {
+                rule: "campaign_warn_on_medium_signal".to_string(),
+                derived: 1,
+                confidence: 0.8,
+                priority: 60,
+            }],
+            priorities: vec![adjudicate::PriorityFinding {
+                level: "medium".to_string(),
+                message: "failed attack execution needs review".to_string(),
+            }],
+            notes: Vec::new(),
+        }
+    }
+
+    fn sample_audience_report() -> audience::AudienceReport {
+        let mut signal_counts = BTreeMap::new();
+        signal_counts.insert("panic_signal".to_string(), 1);
+        audience::AudienceReport {
+            created_at: chrono::Utc::now().to_rfc3339(),
+            target: PathBuf::from("src/main.rs"),
+            executed_program: Some("panic-attack".to_string()),
+            repeat: 1,
+            observed_runs: 1,
+            observed_reports: 0,
+            language: "en".to_string(),
+            run_observations: vec![audience::RunObservation {
+                run_index: 1,
+                success: false,
+                exit_code: Some(1),
+                duration_ms: 15,
+                timed_out: false,
+                stdout: String::new(),
+                stderr: "panic".to_string(),
+                stdout_head: Vec::new(),
+                stdout_tail: Vec::new(),
+                stderr_head: vec!["panic".to_string()],
+                stderr_tail: vec!["panic".to_string()],
+                matches: vec![audience::PatternMatch {
+                    mode: "grep".to_string(),
+                    pattern: "panic".to_string(),
+                    line_no: 1,
+                    line: "panic".to_string(),
+                    distance: None,
+                }],
+                signals: vec![audience::Signal {
+                    severity: "high".to_string(),
+                    name: "panic_signal".to_string(),
+                    evidence: "panic found in stderr".to_string(),
+                }],
+                spellcheck: None,
+            }],
+            report_observations: Vec::new(),
+            signal_counts,
+            recommendations: vec!["review panic path".to_string()],
+            aspell: Some(audience::SpellcheckSummary {
+                lang: "en".to_string(),
+                total_misspellings: 0,
+                run_observations_with_misspellings: 0,
+                report_observations_with_misspellings: 0,
+            }),
+        }
+    }
+
+    #[test]
+    fn report_bundle_roundtrip_assail() {
+        let bundle = ReportBundle::new(ReportBundlePayload::Assail(sample_assail_report()));
+        let rendered = render_report_bundle(&bundle).expect("render should succeed");
+        let parsed = parse_report_bundle(&rendered).expect("parse should succeed");
+        assert_eq!(parsed.kind(), ReportBundleKind::Assail);
+        let payload = match parsed.payload {
+            ReportBundlePayload::Assail(v) => v,
+            _ => panic!("wrong payload type"),
+        };
+        assert_eq!(payload.program_path, PathBuf::from("src/main.rs"));
+    }
+
+    #[test]
+    fn report_bundle_roundtrip_attack() {
+        let bundle = ReportBundle::new(ReportBundlePayload::Attack(sample_attack_results()));
+        let rendered = render_report_bundle(&bundle).expect("render should succeed");
+        let parsed = parse_report_bundle(&rendered).expect("parse should succeed");
+        assert_eq!(parsed.kind(), ReportBundleKind::Attack);
+        let payload = match parsed.payload {
+            ReportBundlePayload::Attack(v) => v,
+            _ => panic!("wrong payload type"),
+        };
+        assert_eq!(payload.len(), 1);
+        assert_eq!(payload[0].axis, AttackAxis::Cpu);
+    }
+
+    #[test]
+    fn report_bundle_roundtrip_ambush() {
+        let bundle = ReportBundle::new(ReportBundlePayload::Ambush(sample_ambush_report()));
+        let rendered = render_report_bundle(&bundle).expect("render should succeed");
+        let parsed = parse_report_bundle(&rendered).expect("parse should succeed");
+        assert_eq!(parsed.kind(), ReportBundleKind::Ambush);
+        let payload = match parsed.payload {
+            ReportBundlePayload::Ambush(v) => v,
+            _ => panic!("wrong payload type"),
+        };
+        assert!(payload.timeline.is_some());
+        assert_eq!(payload.total_crashes, 1);
+    }
+
+    #[test]
+    fn report_bundle_roundtrip_assault() {
+        let bundle = ReportBundle::new(ReportBundlePayload::Assault(sample_assault_report()));
+        let rendered = render_report_bundle(&bundle).expect("render should succeed");
+        let parsed = parse_report_bundle(&rendered).expect("parse should succeed");
+        assert_eq!(parsed.kind(), ReportBundleKind::Assault);
+        let payload = match parsed.payload {
+            ReportBundlePayload::Assault(v) => v,
+            _ => panic!("wrong payload type"),
+        };
+        assert!(payload.timeline.is_none());
+        assert_eq!(payload.total_signatures, 1);
+    }
+
+    #[test]
+    fn report_bundle_roundtrip_amuck() {
+        let bundle = ReportBundle::new(ReportBundlePayload::Amuck(sample_amuck_report()));
+        let rendered = render_report_bundle(&bundle).expect("render should succeed");
+        let parsed = parse_report_bundle(&rendered).expect("parse should succeed");
+        assert_eq!(parsed.kind(), ReportBundleKind::Amuck);
+        let payload = match parsed.payload {
+            ReportBundlePayload::Amuck(v) => v,
+            _ => panic!("wrong payload type"),
+        };
+        assert_eq!(payload.combinations_planned, 2);
+        assert_eq!(payload.combinations_run, 1);
+    }
+
+    #[test]
+    fn report_bundle_roundtrip_abduct() {
+        let bundle = ReportBundle::new(ReportBundlePayload::Abduct(sample_abduct_report()));
+        let rendered = render_report_bundle(&bundle).expect("render should succeed");
+        let parsed = parse_report_bundle(&rendered).expect("parse should succeed");
+        assert_eq!(parsed.kind(), ReportBundleKind::Abduct);
+        let payload = match parsed.payload {
+            ReportBundlePayload::Abduct(v) => v,
+            _ => panic!("wrong payload type"),
+        };
+        assert_eq!(payload.selected_files, 2);
+        assert_eq!(payload.locked_files, 2);
+    }
+
+    #[test]
+    fn report_bundle_roundtrip_adjudicate() {
+        let bundle = ReportBundle::new(ReportBundlePayload::Adjudicate(sample_adjudicate_report()));
+        let rendered = render_report_bundle(&bundle).expect("render should succeed");
+        let parsed = parse_report_bundle(&rendered).expect("parse should succeed");
+        assert_eq!(parsed.kind(), ReportBundleKind::Adjudicate);
+        let payload = match parsed.payload {
+            ReportBundlePayload::Adjudicate(v) => v,
+            _ => panic!("wrong payload type"),
+        };
+        assert_eq!(payload.verdict, "warn");
+        assert_eq!(payload.processed_reports, 2);
+    }
+
+    #[test]
+    fn report_bundle_roundtrip_audience() {
+        let bundle = ReportBundle::new(ReportBundlePayload::Audience(sample_audience_report()));
+        let rendered = render_report_bundle(&bundle).expect("render should succeed");
+        let parsed = parse_report_bundle(&rendered).expect("parse should succeed");
+        assert_eq!(parsed.kind(), ReportBundleKind::Audience);
+        let payload = match parsed.payload {
+            ReportBundlePayload::Audience(v) => v,
+            _ => panic!("wrong payload type"),
+        };
+        assert_eq!(payload.observed_runs, 1);
+        assert_eq!(payload.signal_counts.get("panic_signal"), Some(&1));
+    }
+
+    #[test]
+    fn export_import_file_roundtrip_all_kinds() {
+        let dir = TempDir::new().expect("tempdir should create");
+
+        let cases = vec![
+            (
+                ReportBundleKind::Assail,
+                ReportBundlePayload::Assail(sample_assail_report()),
+            ),
+            (
+                ReportBundleKind::Attack,
+                ReportBundlePayload::Attack(sample_attack_results()),
+            ),
+            (
+                ReportBundleKind::Assault,
+                ReportBundlePayload::Assault(sample_assault_report()),
+            ),
+            (
+                ReportBundleKind::Ambush,
+                ReportBundlePayload::Ambush(sample_ambush_report()),
+            ),
+            (
+                ReportBundleKind::Amuck,
+                ReportBundlePayload::Amuck(sample_amuck_report()),
+            ),
+            (
+                ReportBundleKind::Abduct,
+                ReportBundlePayload::Abduct(sample_abduct_report()),
+            ),
+            (
+                ReportBundleKind::Adjudicate,
+                ReportBundlePayload::Adjudicate(sample_adjudicate_report()),
+            ),
+            (
+                ReportBundleKind::Audience,
+                ReportBundlePayload::Audience(sample_audience_report()),
+            ),
+        ];
+
+        for (idx, (kind, payload)) in cases.into_iter().enumerate() {
+            let input = dir
+                .path()
+                .join(format!("input-{}-{}.json", idx, kind.as_str()));
+            let output = dir
+                .path()
+                .join(format!("output-{}-{}.json", idx, kind.as_str()));
+            let bundle_path = dir
+                .path()
+                .join(format!("bundle-{}-{}.a2ml", idx, kind.as_str()));
+
+            let json = match &payload {
+                ReportBundlePayload::Assail(v) => serde_json::to_string_pretty(v),
+                ReportBundlePayload::Attack(v) => serde_json::to_string_pretty(v),
+                ReportBundlePayload::Assault(v) => serde_json::to_string_pretty(v),
+                ReportBundlePayload::Ambush(v) => serde_json::to_string_pretty(v),
+                ReportBundlePayload::Amuck(v) => serde_json::to_string_pretty(v),
+                ReportBundlePayload::Abduct(v) => serde_json::to_string_pretty(v),
+                ReportBundlePayload::Adjudicate(v) => serde_json::to_string_pretty(v),
+                ReportBundlePayload::Audience(v) => serde_json::to_string_pretty(v),
+            }
+            .expect("payload should serialize");
+            fs::write(&input, json).expect("input should write");
+
+            export_report_file(kind, &input, &bundle_path).expect("export should succeed");
+            let imported = import_report_file(&bundle_path, &output).expect("import should work");
+            assert_eq!(imported, kind);
+
+            let output_body = fs::read_to_string(&output).expect("output should read");
+            let parse_result = match kind {
+                ReportBundleKind::Assail => {
+                    serde_json::from_str::<AssailReport>(&output_body).map(|_| ())
+                }
+                ReportBundleKind::Attack => {
+                    serde_json::from_str::<Vec<AttackResult>>(&output_body).map(|_| ())
+                }
+                ReportBundleKind::Assault | ReportBundleKind::Ambush => {
+                    serde_json::from_str::<AssaultReport>(&output_body).map(|_| ())
+                }
+                ReportBundleKind::Amuck => {
+                    serde_json::from_str::<amuck::AmuckReport>(&output_body).map(|_| ())
+                }
+                ReportBundleKind::Abduct => {
+                    serde_json::from_str::<abduct::AbductReport>(&output_body).map(|_| ())
+                }
+                ReportBundleKind::Adjudicate => {
+                    serde_json::from_str::<adjudicate::AdjudicateReport>(&output_body).map(|_| ())
+                }
+                ReportBundleKind::Audience => {
+                    serde_json::from_str::<audience::AudienceReport>(&output_body).map(|_| ())
+                }
+            };
+            assert!(
+                parse_result.is_ok(),
+                "imported json should parse for kind {}",
+                kind.as_str()
+            );
+        }
     }
 }

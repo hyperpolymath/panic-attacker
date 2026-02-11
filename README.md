@@ -94,6 +94,18 @@ panic-attack assault ./target/release/my-program
 # Note: The `ambush` subcommand may not be available in all installed versions of panic-attack.
 panic-attack ambush ./target/release/my-program
 
+# Amuck: mutate a file with dangerous combinations and save a report
+panic-attack amuck ./src/main.rs --preset dangerous
+
+# Abduct: isolate and lock a target with controlled time skew
+panic-attack abduct ./src/main.rs --scope direct --mtime-offset-days 21
+
+# Adjudicate: compile multiple reports into a campaign verdict
+panic-attack adjudicate reports/run-a.json reports/run-b.json
+
+# Audience: observe reactions from tool execution and report artifacts
+panic-attack audience ./src/main.rs --report reports/amuck-run.json
+
 # Single attack (dynamic stress test on a binary)
 panic-attack attack ./target/release/my-program --axis memory --intensity heavy
 ```
@@ -187,6 +199,115 @@ panic-attack ambush ./my-program --timeline timeline.yaml
 
 Timeline format draft: `docs/ambush-timeline.md`.
 
+### Amuck (Mutation Combinations)
+
+Run mutation combinations against a target file. `amuck` never edits the original file in place; it writes variants under `runtime/amuck/` by default and emits a JSON report.
+
+```bash
+# Built-in dangerous presets
+panic-attack amuck ./src/main.rs --preset dangerous
+
+# Restrict number of combinations and custom output directory
+panic-attack amuck ./src/main.rs --max-combinations 6 --output-dir ./tmp/amuck
+
+# Execute a checker command for each mutation (inject mutated file at {file})
+panic-attack amuck ./src/main.rs \
+  --exec-program rustc \
+  --exec-arg {file}
+
+# User-defined combinations
+panic-attack amuck ./src/main.rs --spec ./profiles/amuck-spec.json
+```
+
+Spec file format (`json` or `yaml`) example:
+
+```json
+{
+  "combos": [
+    {
+      "name": "flip-check",
+      "operations": [
+        { "op": "replace_first", "from": "==", "to": "!=" },
+        { "op": "append_text", "text": "\n/* amuck */\n" }
+      ]
+    }
+  ]
+}
+```
+
+### Abduct (Isolation + Time Skew)
+
+`abduct` creates an isolated workspace copy of a target file, optionally includes related files,
+applies readonly lock-down, and can shift file modification times to simulate delayed-trigger
+conditions. This is defensive analysis support and does not attempt sandbox anti-detection.
+
+```bash
+# Copy target + direct dependency neighborhood, lock files, and age mtimes by 3 weeks
+panic-attack abduct ./src/main.rs --scope direct --mtime-offset-days 21
+
+# Same-directory isolation without locking
+panic-attack abduct ./src/main.rs --scope directory --no-lock
+
+# Run a checker command inside abduct workflow
+panic-attack abduct ./src/main.rs \
+  --exec-program rustc \
+  --exec-arg {file} \
+  --exec-timeout 30
+
+# Time metadata for downstream harnesses
+panic-attack abduct ./src/main.rs --time-mode slow --time-scale 0.05
+```
+
+### Adjudicate (Campaign Verdict)
+
+Aggregate multiple run artifacts (`assault`, `amuck`, `abduct`) into a campaign-level verdict using miniKanren-style rule inference.
+
+```bash
+# Build an expert-style campaign verdict from mixed report types
+panic-attack adjudicate reports/assault-a.json reports/amuck-a.json reports/abduct-a.json
+
+# Save adjudication to a specific path
+panic-attack adjudicate reports/*.json --output reports/campaign-adjudication.json
+```
+
+### Audience (Reaction Observer)
+
+Observe how a target responds when another tool/program runs against it, and/or listen to existing report artifacts for reaction signals.
+
+```bash
+# Observe one tool command repeatedly
+panic-attack audience ./src/main.rs \
+  --exec-program panic-attack \
+  --exec-arg amuck \
+  --exec-arg {target} \
+  --repeat 3
+
+# Observe report artifacts without executing a command
+panic-attack audience ./src/main.rs \
+  --report reports/amuck-a.json \
+  --report reports/abduct-a.json
+
+# Focus on excerpts and pattern search
+panic-attack audience ./src/main.rs \
+  --report reports/amuck-a.json \
+  --head 30 --tail 30 \
+  --grep "panic" \
+  --agrep "segmntation" --agrep-distance 2
+
+# Enable aspell and localized markdown output
+panic-attack audience ./src/main.rs \
+  --report reports/amuck-a.json \
+  --aspell --aspell-lang en \
+  --lang fr \
+  --markdown-output reports/audience-fr.md
+
+# Optional pandoc conversion from markdown
+panic-attack audience ./src/main.rs \
+  --report reports/amuck-a.json \
+  --pandoc-to html \
+  --pandoc-output reports/audience.html
+```
+
 ### Attack Profiles & Probe Mode
 
 Assaults can pass custom arguments to targets via a profile file (JSON/YAML) or CLI flags:
@@ -240,6 +361,26 @@ panic-attack diff
 
 The repository’s `AI.a2ml` manifest now exposes a `(reports ...)` block that dictates the default `formats` (`json`, `nickel`, `yaml`) and `storage-targets` (`filesystem`, `verisimdb`). Run `panic-attack manifest` (or `panic-attack manifest --output manifest.ncl`) to render that manifest as Nickel for downstream configuration and tooling.
 
+### A2ML Report Bundle Import/Export
+
+Convert report artifacts to/from a schema-versioned A2ML report document:
+
+```bash
+# Export assail, attack, or ambush reports into A2ML
+panic-attack a2ml-export --kind assail reports/assail.json --output reports/assail.a2ml
+panic-attack a2ml-export --kind attack reports/attack-results.json --output reports/attack.a2ml
+panic-attack a2ml-export --kind ambush reports/ambush.json --output reports/ambush.a2ml
+
+# Export other report families too
+panic-attack a2ml-export --kind amuck reports/amuck.json --output reports/amuck.a2ml
+panic-attack a2ml-export --kind abduct reports/abduct.json --output reports/abduct.a2ml
+panic-attack a2ml-export --kind adjudicate reports/adjudicate.json --output reports/adjudicate.a2ml
+panic-attack a2ml-export --kind audience reports/audience.json --output reports/audience.a2ml
+
+# Import back to JSON (optional kind assertion)
+panic-attack a2ml-import reports/ambush.a2ml --output reports/ambush.roundtrip.json --kind ambush
+```
+
 ### PanLL Export
 
 Export an assault report to a PanLL event-chain model:
@@ -249,6 +390,27 @@ panic-attack panll reports/assault-report.json --output panll-event-chain.json
 ```
 
 See `docs/panll-export.md` for the current export shape.
+
+## Help & Diagnostics
+
+Use `panic-attack help` to print the classic man-style overview that mirrors `man/panic-attack.1` (the bundled man page is installed under `/usr/local/share/man/man1/` inside the verified container) or specify a subcommand to get focused guidance (e.g., `panic-attack help ambush`).  
+
+```bash
+# Focused help for mutation and isolation workflows
+panic-attack help amuck
+panic-attack help abduct
+panic-attack help adjudicate
+panic-attack help audience
+```
+
+Run `panic-attack diagnostics` before publishing a bundle so Hypatia and gitbot-fleet can see whether the AI manifest, reports directories, timeline docs, and watcher endpoints are in place. The command sets `HYPATIA_API_KEY` and `GITBOT_FLEET_ENDPOINT` as environmental hooks and exits non-zero if any check fails, making it safe to gate container builds on its success.
+
+Both commands are wired into the PanLL security menu (help for command hints, diagnostics to confirm Hypatia/gitbot coverage) so the UX layer can surface readiness signals in one place.
+
+## Code Annotation Map
+
+For architecture-level annotations across the codebase, see `docs/codebase-annotations.md`.
+For release validation/staging guidance in a dirty worktree, see `docs/release-prep.md`.
 
 ## Example Output
 

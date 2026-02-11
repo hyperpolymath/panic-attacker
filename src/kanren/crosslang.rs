@@ -112,6 +112,7 @@ impl CrossLangAnalyzer {
         }
 
         // Detect language family boundaries in the project
+        // Family boundaries are coarse but useful to prioritize polyglot trust edges.
         Self::detect_family_boundaries(db, &file_langs);
     }
 
@@ -135,7 +136,7 @@ impl CrossLangAnalyzer {
             families.insert(lang.family());
         }
 
-        // If multiple families are present, assert boundary facts
+        // Emit pairwise family boundaries as undirected adjacency facts.
         let family_vec: Vec<&&str> = families.iter().collect();
         for i in 0..family_vec.len() {
             for j in (i + 1)..family_vec.len() {
@@ -206,6 +207,8 @@ impl CrossLangAnalyzer {
     pub fn query_interactions(db: &FactDB) -> Vec<CrossLangInteraction> {
         let mut interactions = Vec::new();
 
+        // Rehydrate relational findings back into typed interaction records.
+        // Scores are currently heuristic constants and can be model-driven later.
         // Collect FFI risk findings
         for fact in db.get_facts("ffi_risk") {
             if fact.args.len() >= 2 {

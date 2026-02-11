@@ -13,6 +13,7 @@ use std::path::Path;
 pub fn load_report(path: &Path) -> Result<AssaultReport> {
     let content =
         fs::read_to_string(path).with_context(|| format!("reading report {}", path.display()))?;
+    // Diff loader accepts JSON/YAML to match report export formats.
     match path.extension().and_then(|ext| ext.to_str()) {
         Some("yaml") | Some("yml") => serde_yaml::from_str(&content)
             .with_context(|| format!("parsing yaml report {}", path.display())),
@@ -27,6 +28,7 @@ pub fn format_diff(
     base_label: &str,
     compare_label: &str,
 ) -> String {
+    // Diff output is human-first text, optimized for terminal/code-review workflows.
     let mut lines = Vec::new();
     lines.push("=== PANIC-ATTACK REPORT DIFF ===".to_string());
     lines.push(format!("Base: {}", base_label));
@@ -100,6 +102,7 @@ fn format_attack_summary(base: &AssaultReport, compare: &AssaultReport) -> Vec<S
         fmt_delta_i64(cmp_skip as i64 - base_skip as i64)
     ));
 
+    // Per-axis deltas compress many individual runs into a quick triage surface.
     let base_axes = axis_status_map(&base.attack_results);
     let compare_axes = axis_status_map(&compare.attack_results);
     if !base_axes.is_empty() || !compare_axes.is_empty() {
@@ -238,6 +241,7 @@ fn axis_status_map(results: &[AttackResult]) -> HashMap<AttackAxis, String> {
 }
 
 fn summarize_axis(entries: Vec<&AttackResult>) -> String {
+    // Any non-skipped failure dominates axis status for conservative reporting.
     if entries.iter().any(|r| !r.skipped && !r.success) {
         "failed".to_string()
     } else if entries.iter().any(|r| r.skipped) {

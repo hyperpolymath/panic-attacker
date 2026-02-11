@@ -1,0 +1,146 @@
+.TH PANIC-ATTACK 1 "2026-02-11" "panic-attack 2.0.0" "panic-attack manual"
+.SH NAME
+panic-attack \- universal stress testing and logic-based bug signature detection
+.SH SYNOPSIS
+.B panic-attack
+.RI COMMAND [ARGS...]
+.SH DESCRIPTION
+panic-attack orchestrates static analysis, multi-axis assaults, crash-signature detection, and PanLL export generation for binary targets. It can also probe existing reports, render rich views, and publish agentic diagnostics for automated monitoring.
+The tool is shipped alongside its Chainguard/Cerro Torre container bundle so that runtimes such as Vörðr or selur-compose can execute it as a verified component.
+
+panic-attack's man page reflects the CLI entry points described in the README and helps the UX/UI agent (PanLL) discover supported workflows via the security menu.
+
+.SH COMMANDS
+.TP
+.B assail TARGET
+Performs static code analysis to flag weak points, language constructs, and recommended attack axes.
+.TP
+.B attack PROGRAM
+Launches a single stress axis attack with optional axis arguments, profiles, and duration controls.
+.TP
+.B assault PROGRAM
+Combines assail analysis and multi-axis attack phases, then emits an assault report in JSON, Nickel, or other formats.
+.TP
+.B ambush PROGRAM
+Runs the target under ambient stressors (timeline driven or directly specified axes) and exports a PanLL-compatible timeline.
+.TP
+.B amuck TARGET
+Mutates a file with dangerous or user-defined operation combinations, writes variant files under runtime/amuck by default, and emits a JSON report.
+.TP
+.B abduct TARGET
+Copies a target into an isolated workspace, optionally includes related files, applies readonly lock-down, and can shift file mtimes to simulate delayed-trigger behavior for defensive analysis.
+.TP
+.B adjudicate REPORTS...
+Aggregates assault/amuck/abduct report artifacts into a campaign-level verdict using rule-based inference.
+.TP
+.B audience TARGET
+Observes reaction signals by executing an external tool against a target and/or by inspecting existing report artifacts.
+.TP
+.B analyze REPORT.json
+Extracts logical bug signatures from an existing crash report.
+.TP
+.B report <REPORT>
+Prints a formatted view of an existing assault report.
+.TP
+.B tui <REPORT>
+Opens the terminal UI for a saved report.
+.TP
+.B gui <REPORT>
+Launches the native GUI for report review.
+.TP
+.B diff [BASE] [COMPARE]
+Compares two reports (defaults to the two most recent stored VerisimDB files).
+.TP
+.B manifest [--path PATH]
+Exports the AI manifest in Nickel syntax.
+.TP
+.B a2ml-export --kind KIND INPUT --output OUT
+Encodes a report artifact as a schema-versioned A2ML report bundle (supports assail, attack, assault, ambush, amuck, abduct, adjudicate, audience).
+.TP
+.B a2ml-import INPUT --output OUT [--kind KIND]
+Decodes an A2ML report bundle back into JSON (optionally assert expected kind).
+.TP
+.B panll REPORT [--out OUT]
+Converts an assault report into a PanLL event-chain JSON for Pane-W import.
+.TP
+.B help [COMMAND]
+Shows the man-style help text for panic-attack or one of its subcommands.
+.TP
+.B diagnostics [--manifest PATH]
+Runs self-diagnostics that check for AI manifest validity, required artifact directories, and the presence of Hypatia/gitbot-fleet watchers. This command returns non-zero if any check fails so automation can detect regressions.
+.SH EXAMPLES
+.TP
+.B panic-attack help amuck
+Show focused help for mutation-combination workflows.
+.TP
+.B panic-attack amuck ./src/main.rs --preset dangerous --max-combinations 8
+Generate dangerous mutation combinations from a target file and write a JSON report.
+.TP
+.B panic-attack help abduct
+Show focused help for isolation/time-skew workflows.
+.TP
+.B panic-attack abduct ./src/main.rs --scope direct --mtime-offset-days 21
+Create an isolated workspace copy, lock selected files read-only, and age mtimes by three weeks.
+.TP
+.B panic-attack abduct ./src/main.rs --exec-program rustc --exec-arg {file}
+Run a checker against the abducted target while preserving isolation metadata.
+.TP
+.B panic-attack adjudicate reports/assault-a.json reports/amuck-a.json reports/abduct-a.json
+Compile a larger picture from multiple report types and emit a campaign verdict.
+.TP
+.B panic-attack audience ./src/main.rs --exec-program panic-attack --exec-arg amuck --exec-arg {target} --repeat 3
+Watch repeated target reactions while another tool runs against it.
+.TP
+.B panic-attack audience ./src/main.rs --report reports/amuck-a.json --head 30 --tail 30 --grep panic --agrep segmntation --agrep-distance 2 --aspell --aspell-lang en
+Inspect report reactions with excerpting, exact/fuzzy pattern matching, and optional spell-check signals.
+.TP
+.B panic-attack audience ./src/main.rs --report reports/amuck-a.json --lang fr --pandoc-to html --pandoc-output reports/audience.html
+Export localized audience markdown and convert it to another format with pandoc.
+.TP
+.B panic-attack a2ml-export --kind ambush reports/ambush.json --output reports/ambush.a2ml
+Encode an ambush/assault-style report in A2ML report-bundle form.
+.TP
+.B panic-attack a2ml-import reports/ambush.a2ml --output reports/ambush.roundtrip.json --kind ambush
+Decode A2ML report-bundle content back to JSON with kind validation.
+.SH DIAGNOSTICS
+panic-attack diagnostics emits a table of OK/WARN/ERR checks for:
+.PP
+.TP
+.RS
+AI manifest (formats, storage targets)
+.TP
+Reports, profiles, and docs directories
+.TP
+verisimdb cache contents
+.TP
+presence of docs/ambush-timeline.md and docs/panll-export.md
+.TP
+Hypatia scanning endpoint (HYPATIA_API_KEY)
+.TP
+gitbot-fleet observer endpoint (GITBOT_FLEET_ENDPOINT)
+.RE
+
+If any check fails, the command exits with status 1, which enables Hypatia and gitbot-fleet to flag the repository for follow-up before container builds run.
+
+.SH ENVIRONMENT
+.TP
+.B PANIC_ATTACK_BIN
+Override the binary path used by PanLL when invoking ambush.
+.TP
+.B HYPATIA_API_KEY
+Optional key that diagnostics use to confirm Hypatia scanning is configured.
+.TP
+.B GITBOT_FLEET_ENDPOINT
+Optional endpoint that diagnostics use to verify gitbot-fleet observers are available.
+.SH FILES
+.TP
+.B AI.a2ml
+AI manifest describing reports, storage, and assisted workflows.
+.TP
+.B docs/ambush-timeline.md, docs/panll-export.md
+Guides that diagnostics verify exist before publishing containers.
+.TP
+.B man/panic-attack.1
+This manual page. Install it under /usr/local/share/man/man1/ when packaging the binary.
+.SH SEE ALSO
+.RI panic-attack-container (8), selur-compose(1)

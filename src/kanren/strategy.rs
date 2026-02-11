@@ -89,6 +89,7 @@ pub fn prioritise_files(report: &AssailReport, strategy: SearchStrategy) -> Vec<
         .map(|fs| score_file(fs))
         .collect();
 
+    // Sorting policy is strategy-dependent, but all strategies operate on the same base score set.
     match strategy {
         SearchStrategy::RiskWeighted | SearchStrategy::BoundaryFirst => {
             // Highest risk first
@@ -150,6 +151,7 @@ fn score_file(fs: &FileStatistics) -> FileRisk {
     let mut factors = Vec::new();
     let mut total = 0.0;
 
+    // This is intentionally linear and explainable, not a black-box risk model.
     // Unsafe blocks are high-risk
     if fs.unsafe_blocks > 0 {
         let weight = 3.0;

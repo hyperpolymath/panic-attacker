@@ -38,6 +38,7 @@ impl ReportFormatter {
         expand_details: bool,
         show_matrix: bool,
     ) {
+        // `view` controls the primary lens; `show_matrix` can append pivot data to non-matrix views.
         println!("\n{}", "=== PANIC-ATTACK ASSAULT REPORT ===".bold().cyan());
         println!();
 
@@ -119,10 +120,7 @@ impl ReportFormatter {
 
     fn print_timeline_summary(&self, timeline: &TimelineReport) {
         println!("{}", "TIMELINE".bold().yellow());
-        println!(
-            "  Duration: {:.2}s",
-            timeline.duration.as_secs_f64()
-        );
+        println!("  Duration: {:.2}s", timeline.duration.as_secs_f64());
         println!("  Events: {}", timeline.events.len());
         for event in timeline.events.iter().take(5) {
             let status = if event.ran { "ran" } else { "skipped" };
@@ -303,6 +301,7 @@ impl ReportFormatter {
         report: &AssailReport,
     ) -> Vec<(WeakPointCategory, AttackAxis, f64)> {
         let mut aggregate: HashMap<(WeakPointCategory, AttackAxis), f64> = HashMap::new();
+        // Aggregate severity by source/sink pair to expose dominant taint channels.
         for row in &report.taint_matrix.rows {
             let key = (row.source_category, row.sink_axis);
             *aggregate.entry(key).or_insert(0.0) += row.severity_value;
@@ -475,6 +474,7 @@ impl ReportFormatter {
     }
 
     fn health_bar(value: f64, max: f64) -> String {
+        // Unicode bars are used for terminal legibility at a glance.
         let percent = (value / max).clamp(0.0, 1.0);
         let filled = (percent * 20.0).round() as usize;
         let mut bar = String::new();

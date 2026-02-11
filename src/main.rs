@@ -7,9 +7,14 @@
 //! Mozart/Oz and Datalog.
 
 mod a2ml;
+mod abduct;
+mod adjudicate;
 mod ambush;
+mod amuck;
 mod assail;
 mod attack;
+mod audience;
+mod diagnostics;
 mod kanren;
 mod panll;
 mod report;
@@ -17,14 +22,21 @@ mod signatures;
 mod storage;
 mod types;
 
-use crate::a2ml::Manifest;
+use crate::a2ml::{Manifest, ReportBundleKind};
+use crate::abduct::{
+    AbductConfig, DependencyScope, ExecutionCommand as AbductExecutionCommand, TimeMode,
+};
+use crate::adjudicate::AdjudicateConfig;
+use crate::amuck::{AmuckConfig, AmuckPreset, ExecutionCommand as AmuckExecutionCommand};
 use crate::attack::AttackProfile;
+use crate::audience::{AudienceConfig, AudienceLang, ExecutionCommand as AudienceExecutionCommand};
 use crate::report::{format_diff, load_report, ReportOutputFormat, ReportTui, ReportView};
 use crate::storage::{latest_reports, persist_report};
-use anyhow::{anyhow, Result};
-use clap::{Parser, Subcommand};
+use anyhow::{anyhow, Context, Result};
+use clap::{CommandFactory, Parser, Subcommand};
 use std::collections::HashMap;
 use std::fs;
+use std::io::{self, Write};
 use std::path::PathBuf;
 use std::time::Duration;
 use types::*;
@@ -42,6 +54,7 @@ macro_rules! qprintln {
 #[command(version = "2.0.0")]
 #[command(about = "Universal stress testing and logic-based bug signature detection")]
 #[command(long_about = None)]
+#[command(disable_help_subcommand = true)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -206,6 +219,182 @@ enum Commands {
         output: Option<PathBuf>,
     },
 
+    /// Amuck: mutate a file with dangerous/user-defined combinations and optionally execute checks
+    Amuck {
+        /// Target file to mutate (never modified in place)
+        #[arg(value_name = "TARGET")]
+        target: PathBuf,
+
+        /// Mutation preset when no --spec is provided
+        #[arg(long, value_enum, default_value = "dangerous")]
+        preset: AmuckPresetArg,
+
+        /// Custom mutation combinations file (json/yaml)
+        #[arg(long, value_name = "SPEC")]
+        spec: Option<PathBuf>,
+
+        /// Maximum combinations to execute
+        #[arg(long, default_value_t = 16)]
+        max_combinations: usize,
+
+        /// Directory where mutated variants are written
+        #[arg(long, value_name = "DIR", default_value = "runtime/amuck")]
+        output_dir: PathBuf,
+
+        /// Optional executable run per mutated file
+        #[arg(long, value_name = "PROGRAM")]
+        exec_program: Option<String>,
+
+        /// Arguments for --exec-program; use {file} for the mutated file path
+        #[arg(long = "exec-arg", value_name = "ARG", action = clap::ArgAction::Append)]
+        exec_args: Vec<String>,
+
+        /// Optional report output path (JSON)
+        #[arg(short, long, value_name = "OUT")]
+        output: Option<PathBuf>,
+    },
+
+    /// Abduct: isolate, lock, and time-skew a target file (optionally with dependencies)
+    Abduct {
+        /// Target file to abduct into an isolated workspace
+        #[arg(value_name = "TARGET")]
+        target: PathBuf,
+
+        /// Optional source root used to resolve dependency graph paths
+        #[arg(long, value_name = "PATH")]
+        source_root: Option<PathBuf>,
+
+        /// Dependency scope for selecting related files
+        #[arg(long, value_enum, default_value = "direct")]
+        scope: AbductScopeArg,
+
+        /// Workspace root where abduct runs are created
+        #[arg(long, value_name = "DIR", default_value = "runtime/abduct")]
+        output_dir: PathBuf,
+
+        /// Disable readonly lock-down of copied files
+        #[arg(long, default_value_t = false)]
+        no_lock: bool,
+
+        /// Shift copied file mtimes by this many days (negative or positive)
+        #[arg(long, default_value_t = 0)]
+        mtime_offset_days: i64,
+
+        /// Time mode metadata exported to executed process
+        #[arg(long, value_enum, default_value = "normal")]
+        time_mode: AbductTimeModeArg,
+
+        /// Virtual time scale factor when --time-mode slow
+        #[arg(long, default_value_t = 0.1)]
+        time_scale: f64,
+
+        /// Optional virtual timestamp (RFC3339) exported as ABDUCT_VIRTUAL_NOW
+        #[arg(long, value_name = "TIMESTAMP")]
+        virtual_now: Option<String>,
+
+        /// Optional executable to run after lock/time setup
+        #[arg(long, value_name = "PROGRAM")]
+        exec_program: Option<String>,
+
+        /// Arguments for --exec-program; placeholders: {file}, {workspace}
+        #[arg(long = "exec-arg", value_name = "ARG", action = clap::ArgAction::Append)]
+        exec_args: Vec<String>,
+
+        /// Timeout (seconds) for the optional execution command
+        #[arg(long, default_value_t = 120)]
+        exec_timeout: u64,
+
+        /// Optional report output path (JSON)
+        #[arg(short, long, value_name = "OUT")]
+        output: Option<PathBuf>,
+    },
+
+    /// Adjudicate: aggregate reports into a campaign-wide expert-system verdict
+    Adjudicate {
+        /// Input report files (assault/amuck/abduct JSON, assault YAML)
+        #[arg(value_name = "REPORTS", required = true)]
+        reports: Vec<PathBuf>,
+
+        /// Optional report output path (JSON)
+        #[arg(short, long, value_name = "OUT")]
+        output: Option<PathBuf>,
+    },
+
+    /// Audience: observe target reactions from tool outputs and report artifacts
+    Audience {
+        /// Target file/program under observation
+        #[arg(value_name = "TARGET")]
+        target: PathBuf,
+
+        /// Optional executable to run for reaction observation
+        #[arg(long, value_name = "PROGRAM")]
+        exec_program: Option<String>,
+
+        /// Arguments for --exec-program; placeholder: {target}
+        #[arg(long = "exec-arg", value_name = "ARG", action = clap::ArgAction::Append)]
+        exec_args: Vec<String>,
+
+        /// Number of repeated observation runs for --exec-program
+        #[arg(long, default_value_t = 1)]
+        repeat: usize,
+
+        /// Timeout (seconds) per observation run
+        #[arg(long, default_value_t = 60)]
+        timeout: u64,
+
+        /// Existing reports to observe (can be provided multiple times)
+        #[arg(long = "report", value_name = "PATH", action = clap::ArgAction::Append)]
+        reports: Vec<PathBuf>,
+
+        /// Include the first N lines from observed output/content
+        #[arg(long, default_value_t = 20)]
+        head: usize,
+
+        /// Include the last N lines from observed output/content
+        #[arg(long, default_value_t = 20)]
+        tail: usize,
+
+        /// Exact pattern search (repeatable)
+        #[arg(long = "grep", value_name = "PATTERN", action = clap::ArgAction::Append)]
+        grep: Vec<String>,
+
+        /// Approximate/fuzzy pattern search (repeatable)
+        #[arg(long = "agrep", value_name = "PATTERN", action = clap::ArgAction::Append)]
+        agrep: Vec<String>,
+
+        /// Maximum edit distance for --agrep matches
+        #[arg(long, default_value_t = 2)]
+        agrep_distance: usize,
+
+        /// Output language for audience recommendations/markdown
+        #[arg(long, value_enum, default_value = "en")]
+        lang: AudienceLangArg,
+
+        /// Enable aspell checks on observed text
+        #[arg(long, default_value_t = false)]
+        aspell: bool,
+
+        /// Aspell dictionary language (default derived from --lang)
+        #[arg(long, value_name = "CODE")]
+        aspell_lang: Option<String>,
+
+        /// Optional markdown output path
+        #[arg(long, value_name = "OUT")]
+        markdown_output: Option<PathBuf>,
+
+        /// Optional pandoc target format (e.g. html, docx, gfm, latex)
+        #[arg(long, value_name = "FMT")]
+        pandoc_to: Option<String>,
+
+        /// Optional pandoc output path (required for custom destination)
+        #[arg(long, value_name = "OUT")]
+        pandoc_output: Option<PathBuf>,
+
+        /// Optional report output path (JSON)
+        #[arg(short, long, value_name = "OUT")]
+        output: Option<PathBuf>,
+    },
+
     /// Analyze crash reports for bug signatures
     Analyze {
         /// Crash report file (JSON)
@@ -260,6 +449,36 @@ enum Commands {
         output: Option<PathBuf>,
     },
 
+    /// Export a report file into the A2ML report-bundle document type
+    A2mlExport {
+        /// Report kind to encode in the bundle
+        #[arg(long, value_enum)]
+        kind: A2mlReportKindArg,
+
+        /// Source report file (json/yaml depending on kind)
+        #[arg(value_name = "INPUT")]
+        input: PathBuf,
+
+        /// Destination A2ML file
+        #[arg(short, long, value_name = "OUT")]
+        output: PathBuf,
+    },
+
+    /// Import an A2ML report-bundle file back into JSON
+    A2mlImport {
+        /// Source A2ML bundle file
+        #[arg(value_name = "INPUT")]
+        input: PathBuf,
+
+        /// Destination JSON file
+        #[arg(short, long, value_name = "OUT")]
+        output: PathBuf,
+
+        /// Optional expected kind check
+        #[arg(long, value_enum)]
+        kind: Option<A2mlReportKindArg>,
+    },
+
     /// Export an assault report as a PanLL event-chain model
     Panll {
         /// Assault report JSON/YAML file
@@ -269,6 +488,20 @@ enum Commands {
         /// Output file for PanLL export (JSON)
         #[arg(short, long, value_name = "OUT")]
         output: Option<PathBuf>,
+    },
+
+    /// Print detailed help text (man-style)
+    Help {
+        /// Optional subcommand name to display help for
+        #[arg(value_name = "COMMAND")]
+        command: Option<String>,
+    },
+
+    /// Run panic-attack self-diagnostics for Hypatia/gitbot-fleet visibility
+    Diagnostics {
+        /// Alternate AI manifest file (default: AI.a2ml)
+        #[arg(long, value_name = "PATH")]
+        manifest: Option<PathBuf>,
     },
 }
 
@@ -332,6 +565,103 @@ impl From<ProbeModeArg> for ProbeMode {
     }
 }
 
+#[derive(Debug, Clone, Copy, clap::ValueEnum)]
+enum AmuckPresetArg {
+    Light,
+    Dangerous,
+}
+
+impl From<AmuckPresetArg> for AmuckPreset {
+    fn from(arg: AmuckPresetArg) -> Self {
+        match arg {
+            AmuckPresetArg::Light => AmuckPreset::Light,
+            AmuckPresetArg::Dangerous => AmuckPreset::Dangerous,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, clap::ValueEnum)]
+enum AbductScopeArg {
+    None,
+    Direct,
+    TwoHops,
+    Directory,
+}
+
+impl From<AbductScopeArg> for DependencyScope {
+    fn from(arg: AbductScopeArg) -> Self {
+        match arg {
+            AbductScopeArg::None => DependencyScope::None,
+            AbductScopeArg::Direct => DependencyScope::Direct,
+            AbductScopeArg::TwoHops => DependencyScope::TwoHops,
+            AbductScopeArg::Directory => DependencyScope::Directory,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, clap::ValueEnum)]
+enum AbductTimeModeArg {
+    Normal,
+    Frozen,
+    Slow,
+}
+
+impl From<AbductTimeModeArg> for TimeMode {
+    fn from(arg: AbductTimeModeArg) -> Self {
+        match arg {
+            AbductTimeModeArg::Normal => TimeMode::Normal,
+            AbductTimeModeArg::Frozen => TimeMode::Frozen,
+            AbductTimeModeArg::Slow => TimeMode::Slow,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, clap::ValueEnum)]
+enum AudienceLangArg {
+    En,
+    Es,
+    Fr,
+    De,
+}
+
+impl From<AudienceLangArg> for AudienceLang {
+    fn from(arg: AudienceLangArg) -> Self {
+        match arg {
+            AudienceLangArg::En => AudienceLang::En,
+            AudienceLangArg::Es => AudienceLang::Es,
+            AudienceLangArg::Fr => AudienceLang::Fr,
+            AudienceLangArg::De => AudienceLang::De,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, clap::ValueEnum)]
+enum A2mlReportKindArg {
+    Assail,
+    Attack,
+    Assault,
+    Ambush,
+    Amuck,
+    Abduct,
+    Adjudicate,
+    Audience,
+}
+
+impl From<A2mlReportKindArg> for ReportBundleKind {
+    fn from(arg: A2mlReportKindArg) -> Self {
+        match arg {
+            A2mlReportKindArg::Assail => ReportBundleKind::Assail,
+            A2mlReportKindArg::Attack => ReportBundleKind::Attack,
+            A2mlReportKindArg::Assault => ReportBundleKind::Assault,
+            A2mlReportKindArg::Ambush => ReportBundleKind::Ambush,
+            A2mlReportKindArg::Amuck => ReportBundleKind::Amuck,
+            A2mlReportKindArg::Abduct => ReportBundleKind::Abduct,
+            A2mlReportKindArg::Adjudicate => ReportBundleKind::Adjudicate,
+            A2mlReportKindArg::Audience => ReportBundleKind::Audience,
+        }
+    }
+}
+
 fn build_attack_overrides(
     profile_path: Option<PathBuf>,
     args: Vec<String>,
@@ -383,6 +713,31 @@ fn parse_axis(value: &str) -> Option<AttackAxis> {
         "time" => Some(AttackAxis::Time),
         _ => None,
     }
+}
+
+fn default_amuck_report_path() -> PathBuf {
+    let ts = chrono::Utc::now().format("%Y%m%d%H%M%S");
+    PathBuf::from(format!("reports/amuck-{}.json", ts))
+}
+
+fn default_abduct_report_path() -> PathBuf {
+    let ts = chrono::Utc::now().format("%Y%m%d%H%M%S");
+    PathBuf::from(format!("reports/abduct-{}.json", ts))
+}
+
+fn default_adjudicate_report_path() -> PathBuf {
+    let ts = chrono::Utc::now().format("%Y%m%d%H%M%S");
+    PathBuf::from(format!("reports/adjudicate-{}.json", ts))
+}
+
+fn default_audience_report_path() -> PathBuf {
+    let ts = chrono::Utc::now().format("%Y%m%d%H%M%S");
+    PathBuf::from(format!("reports/audience-{}.json", ts))
+}
+
+fn default_audience_markdown_path() -> PathBuf {
+    let ts = chrono::Utc::now().format("%Y%m%d%H%M%S");
+    PathBuf::from(format!("reports/audience-{}.md", ts))
 }
 
 fn main() -> Result<()> {
@@ -594,10 +949,8 @@ fn main() -> Result<()> {
             qprintln!(cli.quiet, "\nPhase 2: Ambush Execution");
             let mut timeline_report = None;
             let attack_results = if let Some(timeline_path) = timeline {
-                let timeline_plan = ambush::load_timeline_with_default(
-                    &timeline_path,
-                    Some(intensity.into()),
-                )?;
+                let timeline_plan =
+                    ambush::load_timeline_with_default(&timeline_path, Some(intensity.into()))?;
                 if let Some(timeline_program) = &timeline_plan.program {
                     if timeline_program != &program {
                         eprintln!(
@@ -683,6 +1036,193 @@ fn main() -> Result<()> {
                     qprintln!(cli.quiet, "Stored report: {}", path.display());
                 }
             }
+        }
+
+        Commands::Amuck {
+            target,
+            preset,
+            spec,
+            max_combinations,
+            output_dir,
+            exec_program,
+            exec_args,
+            output,
+        } => {
+            let execute = exec_program.map(|program| AmuckExecutionCommand {
+                program,
+                args: exec_args,
+            });
+            let report = amuck::run(AmuckConfig {
+                target,
+                spec_path: spec,
+                preset: preset.into(),
+                max_combinations,
+                output_dir,
+                execute,
+            })?;
+            let report_path = output.unwrap_or_else(default_amuck_report_path);
+            amuck::write_report(&report, &report_path)?;
+            qprintln!(
+                cli.quiet,
+                "amuck complete: {}/{} combinations wrote mutated files",
+                report.combinations_run,
+                report.combinations_planned
+            );
+            qprintln!(
+                cli.quiet,
+                "amuck report saved to: {}",
+                report_path.display()
+            );
+        }
+
+        Commands::Abduct {
+            target,
+            source_root,
+            scope,
+            output_dir,
+            no_lock,
+            mtime_offset_days,
+            time_mode,
+            time_scale,
+            virtual_now,
+            exec_program,
+            exec_args,
+            exec_timeout,
+            output,
+        } => {
+            let execute = exec_program.map(|program| AbductExecutionCommand {
+                program,
+                args: exec_args,
+            });
+            let report = abduct::run(AbductConfig {
+                target,
+                source_root,
+                output_root: output_dir,
+                dependency_scope: scope.into(),
+                lock_files: !no_lock,
+                mtime_offset_days,
+                time_mode: time_mode.into(),
+                time_scale,
+                virtual_now,
+                execute,
+                exec_timeout_secs: exec_timeout,
+            })?;
+            let report_path = output.unwrap_or_else(default_abduct_report_path);
+            abduct::write_report(&report, &report_path)?;
+            qprintln!(
+                cli.quiet,
+                "abduct complete: {} files copied ({} locked, {} mtime-shifted)",
+                report.selected_files,
+                report.locked_files,
+                report.mtime_shifted_files
+            );
+            qprintln!(
+                cli.quiet,
+                "abduct workspace: {}",
+                report.workspace_dir.display()
+            );
+            qprintln!(
+                cli.quiet,
+                "abduct report saved to: {}",
+                report_path.display()
+            );
+        }
+
+        Commands::Adjudicate { reports, output } => {
+            let report = adjudicate::run(AdjudicateConfig { reports })?;
+            let report_path = output.unwrap_or_else(default_adjudicate_report_path);
+            adjudicate::write_report(&report, &report_path)?;
+            qprintln!(
+                cli.quiet,
+                "adjudicate verdict: {} (processed {}, failed {})",
+                report.verdict,
+                report.processed_reports,
+                report.failed_reports
+            );
+            qprintln!(
+                cli.quiet,
+                "adjudicate report saved to: {}",
+                report_path.display()
+            );
+        }
+
+        Commands::Audience {
+            target,
+            exec_program,
+            exec_args,
+            repeat,
+            timeout,
+            reports,
+            head,
+            tail,
+            grep,
+            agrep,
+            agrep_distance,
+            lang,
+            aspell,
+            aspell_lang,
+            markdown_output,
+            pandoc_to,
+            pandoc_output,
+            output,
+        } => {
+            let execute = exec_program.map(|program| AudienceExecutionCommand {
+                program,
+                args: exec_args,
+            });
+            let report = audience::run(AudienceConfig {
+                target,
+                execute,
+                repeat,
+                timeout_secs: timeout,
+                reports,
+                head_lines: head,
+                tail_lines: tail,
+                grep_patterns: grep,
+                agrep_patterns: agrep,
+                agrep_distance,
+                lang: lang.into(),
+                aspell,
+                aspell_lang,
+            })?;
+            let report_path = output.unwrap_or_else(default_audience_report_path);
+            audience::write_report(&report, &report_path)?;
+            let markdown_path = markdown_output.unwrap_or_else(default_audience_markdown_path);
+            audience::write_markdown(&report, &markdown_path)?;
+            if let Some(target_format) = pandoc_to {
+                let pandoc_path = pandoc_output.unwrap_or_else(|| {
+                    let mut p = markdown_path.clone();
+                    p.set_extension(target_format.as_str());
+                    p
+                });
+                audience::convert_markdown_with_pandoc(
+                    &markdown_path,
+                    &target_format,
+                    &pandoc_path,
+                )?;
+                qprintln!(
+                    cli.quiet,
+                    "audience pandoc export ({}) saved to: {}",
+                    target_format,
+                    pandoc_path.display()
+                );
+            }
+            qprintln!(
+                cli.quiet,
+                "audience observed {} runs and {} report artifacts",
+                report.observed_runs,
+                report.observed_reports
+            );
+            qprintln!(
+                cli.quiet,
+                "audience report saved to: {}",
+                report_path.display()
+            );
+            qprintln!(
+                cli.quiet,
+                "audience markdown saved to: {}",
+                markdown_path.display()
+            );
         }
 
         Commands::Analyze {
@@ -783,6 +1323,45 @@ fn main() -> Result<()> {
             }
         }
 
+        Commands::A2mlExport {
+            kind,
+            input,
+            output,
+        } => {
+            let report_kind: ReportBundleKind = kind.into();
+            a2ml::export_report_file(report_kind, &input, &output)?;
+            qprintln!(
+                cli.quiet,
+                "A2ML export [{}] written to {}",
+                report_kind.as_str(),
+                output.display()
+            );
+        }
+
+        Commands::A2mlImport {
+            input,
+            output,
+            kind,
+        } => {
+            let imported_kind = a2ml::import_report_file(&input, &output)?;
+            if let Some(expected_kind) = kind {
+                let expected: ReportBundleKind = expected_kind.into();
+                if imported_kind != expected {
+                    return Err(anyhow!(
+                        "A2ML bundle kind mismatch: expected {}, got {}",
+                        expected.as_str(),
+                        imported_kind.as_str()
+                    ));
+                }
+            }
+            qprintln!(
+                cli.quiet,
+                "A2ML import [{}] written to {}",
+                imported_kind.as_str(),
+                output.display()
+            );
+        }
+
         Commands::Panll { report, output } => {
             let assault_report = load_report(&report)?;
             let output_path = output.unwrap_or_else(|| PathBuf::from("panll-event-chain.json"));
@@ -792,6 +1371,41 @@ fn main() -> Result<()> {
                 "PanLL export written to {}",
                 output_path.display()
             );
+        }
+
+        Commands::Help { command } => {
+            let mut app = Cli::command();
+            match command {
+                Some(cmd_name) => {
+                    let mut stdout = io::stdout();
+                    if let Some(subcmd) = app.find_subcommand_mut(&cmd_name) {
+                        subcmd.write_long_help(&mut stdout)?;
+                        stdout.write_all(b"\n")?;
+                        stdout.flush()?;
+                    } else {
+                        eprintln!("Unknown command '{}'", cmd_name);
+                        app.print_long_help()?;
+                    }
+                }
+                None => {
+                    app.print_long_help()?;
+                }
+            }
+            println!();
+            return Ok(());
+        }
+
+        Commands::Diagnostics {
+            manifest: manifest_path,
+        } => {
+            let diag_manifest = if let Some(path) = manifest_path {
+                Manifest::load(&path)
+                    .with_context(|| format!("reading manifest {}", path.display()))?
+            } else {
+                manifest.clone()
+            };
+            diagnostics::run_self_diagnostics(&diag_manifest)?;
+            return Ok(());
         }
     }
 

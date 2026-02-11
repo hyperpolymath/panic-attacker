@@ -14,6 +14,7 @@ pub enum AttackStrategy {
 
 impl AttackStrategy {
     pub fn description(&self) -> &str {
+        // Human-readable labels are used directly in CLI progress output.
         match self {
             AttackStrategy::CpuStress => "Stress test CPU with high computational load",
             AttackStrategy::MemoryExhaustion => "Exhaust available memory with large allocations",

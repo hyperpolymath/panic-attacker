@@ -48,6 +48,8 @@ impl Analyzer {
     }
 
     pub fn analyze(&self) -> Result<AssailReport> {
+        // Global aggregates are intentionally maintained alongside per-file analysis
+        // so output can support both campaign-level scoring and local triage.
         let mut global_stats = ProgramStatistics {
             total_lines: 0,
             unsafe_blocks: 0,
@@ -68,6 +70,7 @@ impl Analyzer {
             self.target.parent().unwrap_or(Path::new(".")).to_path_buf()
         };
 
+        // Each source file is analyzed independently; this keeps weak-point attribution precise.
         for file in &files {
             let raw_bytes = match fs::read(file) {
                 Ok(b) => b,
@@ -359,6 +362,7 @@ impl Analyzer {
             }
         }
 
+        // Secondary synthesis stages derive framework hints and relational overlays.
         let frameworks = self.detect_frameworks(&files)?;
         let recommended_attacks = self.generate_recommendations(&all_weak_points, &global_stats);
         let dependency_graph = Self::build_dependency_graph(&file_statistics, &frameworks);
@@ -383,6 +387,7 @@ impl Analyzer {
         if self.target.is_file() {
             files.push(self.target.clone());
         } else {
+            // Directory mode performs a conservative recursive walk with language filtering.
             self.walk_directory(&self.target, &mut files)?;
         }
 
@@ -440,6 +445,7 @@ impl Analyzer {
     fn detect_directory_language(dir: &Path) -> Result<Language> {
         let mut counts = std::collections::HashMap::new();
 
+        // Cap recursion depth for responsiveness on very large trees.
         Self::count_languages_recursive(dir, &mut counts, 0)?;
 
         counts.remove(&Language::Unknown);
@@ -1990,6 +1996,7 @@ impl Analyzer {
     fn detect_frameworks(&self, files: &[PathBuf]) -> Result<Vec<Framework>> {
         let mut frameworks = HashSet::new();
 
+        // Framework detection is string-heuristic based by design: cheap and language-agnostic.
         for file in files {
             let content = match fs::read_to_string(file) {
                 Ok(c) => c,
@@ -2091,10 +2098,12 @@ impl Analyzer {
     ) -> Vec<AttackAxis> {
         let mut recommendations = HashSet::new();
 
+        // Base recommendations come from weak-point categories.
         for wp in weak_points {
             recommendations.extend(&wp.recommended_attack);
         }
 
+        // Global heuristics widen coverage when aggregate risk indicators are high.
         if stats.allocation_sites > 10 {
             recommendations.insert(AttackAxis::Memory);
         }
@@ -2119,6 +2128,7 @@ impl Analyzer {
         let mut edges = Vec::new();
         let mut dir_groups: HashMap<String, Vec<String>> = HashMap::new();
 
+        // Group by directory first to approximate local import neighborhoods.
         for stat in file_statistics {
             let dir = Path::new(&stat.file_path)
                 .parent()
@@ -2131,6 +2141,7 @@ impl Analyzer {
                 .push(stat.file_path.clone());
         }
 
+        // Sequential edges preserve deterministic output and simple chain traversal.
         for (dir, files) in dir_groups {
             for window in files.windows(2) {
                 if let [from, to] = &window {
@@ -2144,6 +2155,7 @@ impl Analyzer {
             }
         }
 
+        // Attach framework nodes to each file with risk-weighted edge strength.
         for stat in file_statistics {
             let risk = (stat.unsafe_blocks * 3
                 + stat.panic_sites * 2
@@ -2165,6 +2177,7 @@ impl Analyzer {
     fn build_taint_matrix(weak_points: &[WeakPoint], frameworks: &[Framework]) -> TaintMatrix {
         let mut matrix: HashMap<(WeakPointCategory, AttackAxis), TaintMatrixRow> = HashMap::new();
 
+        // Rows are keyed by source category x sink axis to enable pivot-friendly reporting.
         for wp in weak_points {
             for axis in &wp.recommended_attack {
                 let key = (wp.category, *axis);

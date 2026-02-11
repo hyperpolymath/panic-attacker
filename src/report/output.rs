@@ -38,12 +38,14 @@ impl ReportOutputFormat {
         match self {
             ReportOutputFormat::Json => Ok(serde_json::to_string_pretty(report)?),
             ReportOutputFormat::Yaml => Ok(serde_yaml::to_string(report)?),
+            // Nickel output is a compact projection for config-centric consumers.
             ReportOutputFormat::Nickel => Ok(format_report_as_nickel(report)),
         }
     }
 }
 
 fn format_report_as_nickel(report: &AssaultReport) -> String {
+    // The Nickel representation intentionally samples large collections to stay readable.
     let assail = &report.assail_report;
     let mut lines = Vec::new();
     lines.push("let assault_report = {".to_string());

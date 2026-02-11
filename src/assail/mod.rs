@@ -19,6 +19,7 @@ pub use analyzer::Analyzer;
 
 /// Run Assail analysis on a target program
 pub fn analyze<P: AsRef<Path>>(target: P) -> Result<AssailReport> {
+    // Non-verbose mode keeps stdout clean for automation pipelines.
     let analyzer = Analyzer::new(target.as_ref())?;
     analyzer.analyze()
 }
@@ -26,6 +27,7 @@ pub fn analyze<P: AsRef<Path>>(target: P) -> Result<AssailReport> {
 /// Run Assail analysis with verbose output including per-file breakdown
 /// and miniKanren logic engine results
 pub fn analyze_verbose<P: AsRef<Path>>(target: P) -> Result<AssailReport> {
+    // Verbose mode is operator-facing and intentionally prints prioritization context.
     let analyzer = Analyzer::new_verbose(target.as_ref())?;
     let report = analyzer.analyze()?;
 

@@ -40,6 +40,7 @@ impl AttackExecutor {
 
     pub fn execute(&self) -> Result<Vec<AttackResult>> {
         let mut results = Vec::new();
+        // Probe cache avoids re-running `--help` for every axis when probing is enabled.
         let mut probe_cache: HashMap<std::path::PathBuf, Option<String>> = HashMap::new();
 
         for program in &self.config.target_programs {
@@ -56,6 +57,7 @@ impl AttackExecutor {
                 println!("Attacking {:?} on axis {:?}...", program, axis);
 
                 if let Some(help_text) = &probe_text {
+                    // In probe mode, skip axes whose required flags are clearly unsupported.
                     let required_flags = self.required_flags_for_axis(*axis);
                     if !required_flags.is_empty()
                         && !required_flags.iter().all(|flag| help_text.contains(flag))
@@ -127,6 +129,7 @@ impl AttackExecutor {
         let duration = start.elapsed();
         let exit_code = run.output.status.code();
 
+        // Auto-probe fallback: convert obvious flag incompatibility into a skip with context.
         if self.config.probe_mode != ProbeMode::Never && Self::is_unsupported_flags(&run.output) {
             let fallback = Self::fallback_run(program);
             let reason = Self::unsupported_reason(&run.output, fallback.as_ref());
@@ -299,6 +302,7 @@ impl AttackExecutor {
         if self.config.common_args.is_empty() {
             return args;
         }
+        // Common args always prefix axis args so profile defaults remain stable.
         let mut combined = self.config.common_args.clone();
         combined.append(&mut args);
         combined
@@ -358,6 +362,7 @@ impl AttackExecutor {
         if let Some(custom) = self.config.axis_args.get(&axis) {
             required.extend(Self::flag_tokens_from_args(custom));
         } else {
+            // Built-in strategy flags are used only when no axis override is provided.
             let built_in = match axis {
                 AttackAxis::Cpu => vec!["--iterations"],
                 AttackAxis::Memory => vec!["--allocate-mb"],
@@ -419,6 +424,7 @@ impl AttackExecutor {
         if let Some(code) = output.status.code() {
             reason.push_str(&format!(" (exit code {})", code));
         }
+        // Baseline output gives operators a quick signal about target health without attack flags.
         if let Some(fallback_output) = fallback {
             let fallback_code = fallback_output.status.code();
             let fallback_note = match fallback_code {

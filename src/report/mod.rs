@@ -26,6 +26,7 @@ pub fn generate_assault_report(
     assail_report: AssailReport,
     attack_results: Vec<AttackResult>,
 ) -> Result<AssaultReport> {
+    // Centralize report construction so scoring logic stays in one module.
     let generator = ReportGenerator::new();
     generator.generate(assail_report, attack_results)
 }
@@ -36,6 +37,7 @@ pub fn save_report<P: AsRef<Path>>(
     path: P,
     format: ReportOutputFormat,
 ) -> Result<()> {
+    // Output format selection is delegated to the formatter enum for consistency.
     let serialized = format.serialize(report)?;
     fs::write(path, serialized)?;
     Ok(())
@@ -48,6 +50,7 @@ pub fn print_report(
     expand_details: bool,
     show_matrix: bool,
 ) {
+    // Console rendering always flows through ReportFormatter view contracts.
     let formatter = ReportFormatter::new();
     formatter.print_with_view(report, view, expand_details, show_matrix);
 }

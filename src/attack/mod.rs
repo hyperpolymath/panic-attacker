@@ -14,6 +14,7 @@ pub use profile::AttackProfile;
 
 /// Execute an attack against a target program
 pub fn execute_attack(config: AttackConfig) -> Result<Vec<AttackResult>> {
+    // Thin wrapper keeps CLI and library callers on the same execution surface.
     let executor = AttackExecutor::new(config);
     executor.execute()
 }
@@ -24,6 +25,7 @@ pub fn execute_attack_with_patterns(
     language: Language,
     frameworks: &[Framework],
 ) -> Result<Vec<AttackResult>> {
+    // Pattern-aware mode enriches axis execution with language/framework heuristics.
     let executor = AttackExecutor::with_patterns(config, language, frameworks);
     executor.execute()
 }

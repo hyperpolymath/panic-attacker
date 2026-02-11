@@ -17,6 +17,7 @@ impl ReportGenerator {
         assail_report: AssailReport,
         attack_results: Vec<AttackResult>,
     ) -> Result<AssaultReport> {
+        // Keep top-level counters precomputed so downstream views avoid recomputation.
         let total_crashes = attack_results.iter().map(|r| r.crashes.len()).sum();
 
         let total_signatures = attack_results
@@ -45,6 +46,7 @@ impl ReportGenerator {
         let _successful_attacks = results.iter().filter(|r| r.success).count() as f64;
         let crash_count = results.iter().map(|r| r.crashes.len()).sum::<usize>() as f64;
 
+        // Score formula is intentionally transparent so teams can tune it safely.
         // Score formula: higher is better
         // - Subtract 10 points for each crash
         // - Subtract 20 points for critical weak points
@@ -81,7 +83,7 @@ impl ReportGenerator {
             }
         }
 
-        // Generate recommendations
+        // Recommendations are additive heuristics keyed to observed risk traits.
         if crash_count > 0.0 {
             recommendations.push("Add comprehensive error handling for edge cases".to_string());
         }

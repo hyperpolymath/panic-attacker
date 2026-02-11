@@ -33,6 +33,7 @@ pub enum TermArg {
 
 impl RuleSpec {
     pub fn to_logic_rule(&self) -> LogicRule {
+        // Rule specs are declarative payloads; conversion binds them to engine types.
         let head_fact = LogicFact::new(&self.head.functor, self.head.to_terms());
         let body = self
             .body
@@ -98,6 +99,7 @@ impl RuleCatalog {
     }
 
     pub fn export_nickel(&self) -> String {
+        // Nickel export provides lightweight introspection for rule packs in tooling/CI.
         let entries: Vec<String> = self
             .rules
             .iter()
@@ -127,6 +129,7 @@ impl RuleCatalog {
     }
 
     pub fn apply_to_engine(&self, engine: &mut LogicEngine) {
+        // Rules are cloned intentionally to keep catalog reusable across engine instances.
         for rule in &self.rules {
             engine.db.add_rule(rule.clone());
         }
