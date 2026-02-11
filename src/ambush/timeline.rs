@@ -50,10 +50,6 @@ struct TimelineEventSpec {
     pub args: Vec<String>,
 }
 
-pub fn load_timeline(path: &Path) -> Result<TimelinePlan> {
-    load_timeline_with_default(path, None)
-}
-
 pub fn load_timeline_with_default(
     path: &Path,
     default_intensity: Option<IntensityLevel>,

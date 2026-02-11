@@ -4,7 +4,7 @@
 
 mod timeline;
 
-pub use timeline::{load_timeline, load_timeline_with_default, TimelineEventPlan, TimelinePlan};
+pub use timeline::{load_timeline_with_default, TimelinePlan};
 
 use crate::signatures::SignatureEngine;
 use crate::types::*;

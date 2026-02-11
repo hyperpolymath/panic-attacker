@@ -4,7 +4,7 @@
 
 use crate::report::formatter::ReportFormatter;
 use crate::types::{AssaultReport, FileStatistics};
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use eframe::{egui, App, Frame, NativeOptions};
 
 pub struct ReportGui {
@@ -38,7 +38,8 @@ impl ReportGui {
             "panic-attack report",
             options,
             Box::new(|_cc| Box::new(app)),
-        )?;
+        )
+        .map_err(|err| anyhow!("failed to launch report GUI: {err}"))?;
         Ok(())
     }
 }

@@ -58,7 +58,7 @@ struct PanllConstraint {
     description: String,
 }
 
-pub fn export_report(report: &AssaultReport, report_path: Option<&Path>) -> PanllExport {
+fn export_report(report: &AssaultReport, report_path: Option<&Path>) -> PanllExport {
     let timeline = report.timeline.as_ref().map(|timeline| PanllTimeline {
         duration_ms: timeline.duration.as_millis() as u64,
         events: timeline.events.len(),
