@@ -9,6 +9,10 @@ on:
         description: 'Path to scan (default: .)'
         default: '.'
         type: string
+    secrets:
+      VERISIMDB_PAT:
+        description: 'PAT with repo scope for cross-repo dispatch to verisimdb-data'
+        required: false
   workflow_dispatch:
 
 permissions:
@@ -39,13 +43,14 @@ jobs:
       - name: Send to verisimdb-data
         if: steps.scan.outputs.scan_complete == 'true'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISPATCH_TOKEN: ${{ secrets.VERISIMDB_PAT || secrets.GITHUB_TOKEN }}
         run: |
           REPO_NAME=$(basename $(pwd))
           SCAN_DATA=$(cat scan-result.json)
 
-          curl -X POST \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          curl -sf -X POST \
+            -H "Authorization: Bearer ${DISPATCH_TOKEN}" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/hyperpolymath/verisimdb-data/dispatches" \
             -d "{\"event_type\":\"scan_result\",\"client_payload\":{\"repo_name\":\"$REPO_NAME\",\"scan_data\":$SCAN_DATA}}"
+          echo "Dispatched scan results for ${REPO_NAME} to verisimdb-data"
