@@ -1,8 +1,18 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
 
-//! panic-attack: Universal stress testing and logic-based bug signature detection
+//! Panic-Attacker — Universal Stress Testing & Bug Signature Detection.
 //!
-//! Library interface for integration tests and external consumers.
+//! This crate provides the core engine for "Security Ambush" operations. 
+//! It combines traditional stress testing (chaos engineering) with 
+//! logic-based inference to identify subtle race conditions and 
+//! state-corruption bugs.
+//!
+//! ENGINE PILLARS:
+//! 1. **Ambush**: Orchestrates high-concurrency attack patterns.
+//! 2. **Kanren**: Employs relational programming (microKanren) to infer 
+//!    logical contradictions from system logs.
+//! 3. **Signatures**: A database of known bug patterns (e.g. "Double Free", 
+//!    "UAF", "Logic Contradiction") matched against execution traces.
 
 pub mod a2ml;
 pub mod abduct;

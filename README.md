@@ -587,3 +587,8 @@ If you use panic-attack in your research, please cite:
 ---
 
 **Status**: Active development | **Version**: 0.2.0 | **MSRV**: 1.85.0
+
+
+## Architecture
+
+See [TOPOLOGY.md](TOPOLOGY.md) for a visual architecture map and completion dashboard.
