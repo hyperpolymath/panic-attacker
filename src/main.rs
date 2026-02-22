@@ -13,8 +13,9 @@ mod ambush;
 mod amuck;
 mod assail;
 mod attack;
-mod audience;
+mod axial;
 mod diagnostics;
+mod i18n;
 mod kanren;
 mod panll;
 mod report;
@@ -29,7 +30,8 @@ use crate::abduct::{
 use crate::adjudicate::AdjudicateConfig;
 use crate::amuck::{AmuckConfig, AmuckPreset, ExecutionCommand as AmuckExecutionCommand};
 use crate::attack::AttackProfile;
-use crate::audience::{AudienceConfig, AudienceLang, ExecutionCommand as AudienceExecutionCommand};
+use crate::axial::{AxialConfig, ExecutionCommand as AxialExecutionCommand};
+use crate::i18n::Lang;
 use crate::report::{format_diff, load_report, ReportOutputFormat, ReportTui, ReportView};
 use crate::storage::{latest_reports, persist_report};
 use anyhow::{anyhow, Context, Result};
@@ -320,8 +322,8 @@ enum Commands {
         output: Option<PathBuf>,
     },
 
-    /// Audience: observe target reactions from tool outputs and report artifacts
-    Audience {
+    /// Axial: observe target reactions across attack axes from tool outputs and report artifacts
+    Axial {
         /// Target file/program under observation
         #[arg(value_name = "TARGET")]
         target: PathBuf,
@@ -366,9 +368,9 @@ enum Commands {
         #[arg(long, default_value_t = 2)]
         agrep_distance: usize,
 
-        /// Output language for audience recommendations/markdown
+        /// Output language (ISO 639-1 code: en, es, fr, de, ja)
         #[arg(long, value_enum, default_value = "en")]
-        lang: AudienceLangArg,
+        lang: LangArg,
 
         /// Enable aspell checks on observed text
         #[arg(long, default_value_t = false)]
@@ -617,20 +619,22 @@ impl From<AbductTimeModeArg> for TimeMode {
 }
 
 #[derive(Debug, Clone, Copy, clap::ValueEnum)]
-enum AudienceLangArg {
+enum LangArg {
     En,
     Es,
     Fr,
     De,
+    Ja,
 }
 
-impl From<AudienceLangArg> for AudienceLang {
-    fn from(arg: AudienceLangArg) -> Self {
+impl From<LangArg> for Lang {
+    fn from(arg: LangArg) -> Self {
         match arg {
-            AudienceLangArg::En => AudienceLang::En,
-            AudienceLangArg::Es => AudienceLang::Es,
-            AudienceLangArg::Fr => AudienceLang::Fr,
-            AudienceLangArg::De => AudienceLang::De,
+            LangArg::En => Lang::En,
+            LangArg::Es => Lang::Es,
+            LangArg::Fr => Lang::Fr,
+            LangArg::De => Lang::De,
+            LangArg::Ja => Lang::Ja,
         }
     }
 }
@@ -644,7 +648,7 @@ enum A2mlReportKindArg {
     Amuck,
     Abduct,
     Adjudicate,
-    Audience,
+    Axial,
 }
 
 impl From<A2mlReportKindArg> for ReportBundleKind {
@@ -657,7 +661,7 @@ impl From<A2mlReportKindArg> for ReportBundleKind {
             A2mlReportKindArg::Amuck => ReportBundleKind::Amuck,
             A2mlReportKindArg::Abduct => ReportBundleKind::Abduct,
             A2mlReportKindArg::Adjudicate => ReportBundleKind::Adjudicate,
-            A2mlReportKindArg::Audience => ReportBundleKind::Audience,
+            A2mlReportKindArg::Axial => ReportBundleKind::Axial,
         }
     }
 }
@@ -730,14 +734,14 @@ fn default_adjudicate_report_path() -> PathBuf {
     PathBuf::from(format!("reports/adjudicate-{}.json", ts))
 }
 
-fn default_audience_report_path() -> PathBuf {
+fn default_axial_report_path() -> PathBuf {
     let ts = chrono::Utc::now().format("%Y%m%d%H%M%S");
-    PathBuf::from(format!("reports/audience-{}.json", ts))
+    PathBuf::from(format!("reports/axial-{}.json", ts))
 }
 
-fn default_audience_markdown_path() -> PathBuf {
+fn default_axial_markdown_path() -> PathBuf {
     let ts = chrono::Utc::now().format("%Y%m%d%H%M%S");
-    PathBuf::from(format!("reports/audience-{}.md", ts))
+    PathBuf::from(format!("reports/axial-{}.md", ts))
 }
 
 fn main() -> Result<()> {
@@ -1146,7 +1150,7 @@ fn main() -> Result<()> {
             );
         }
 
-        Commands::Audience {
+        Commands::Axial {
             target,
             exec_program,
             exec_args,
@@ -1166,11 +1170,11 @@ fn main() -> Result<()> {
             pandoc_output,
             output,
         } => {
-            let execute = exec_program.map(|program| AudienceExecutionCommand {
+            let execute = exec_program.map(|program| AxialExecutionCommand {
                 program,
                 args: exec_args,
             });
-            let report = audience::run(AudienceConfig {
+            let report = axial::run(AxialConfig {
                 target,
                 execute,
                 repeat,
@@ -1185,42 +1189,42 @@ fn main() -> Result<()> {
                 aspell,
                 aspell_lang,
             })?;
-            let report_path = output.unwrap_or_else(default_audience_report_path);
-            audience::write_report(&report, &report_path)?;
-            let markdown_path = markdown_output.unwrap_or_else(default_audience_markdown_path);
-            audience::write_markdown(&report, &markdown_path)?;
+            let report_path = output.unwrap_or_else(default_axial_report_path);
+            axial::write_report(&report, &report_path)?;
+            let markdown_path = markdown_output.unwrap_or_else(default_axial_markdown_path);
+            axial::write_markdown(&report, &markdown_path)?;
             if let Some(target_format) = pandoc_to {
                 let pandoc_path = pandoc_output.unwrap_or_else(|| {
                     let mut p = markdown_path.clone();
                     p.set_extension(target_format.as_str());
                     p
                 });
-                audience::convert_markdown_with_pandoc(
+                axial::convert_markdown_with_pandoc(
                     &markdown_path,
                     &target_format,
                     &pandoc_path,
                 )?;
                 qprintln!(
                     cli.quiet,
-                    "audience pandoc export ({}) saved to: {}",
+                    "axial pandoc export ({}) saved to: {}",
                     target_format,
                     pandoc_path.display()
                 );
             }
             qprintln!(
                 cli.quiet,
-                "audience observed {} runs and {} report artifacts",
+                "axial observed {} runs and {} report artifacts",
                 report.observed_runs,
                 report.observed_reports
             );
             qprintln!(
                 cli.quiet,
-                "audience report saved to: {}",
+                "axial report saved to: {}",
                 report_path.display()
             );
             qprintln!(
                 cli.quiet,
-                "audience markdown saved to: {}",
+                "axial markdown saved to: {}",
                 markdown_path.display()
             );
         }

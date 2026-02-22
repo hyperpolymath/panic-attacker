@@ -6,7 +6,7 @@ use crate::report::formatter::nickel_escape_string;
 use crate::report::ReportOutputFormat;
 use crate::storage::StorageMode;
 use crate::types::{AssailReport, AssaultReport, AttackResult};
-use crate::{abduct, adjudicate, amuck, audience};
+use crate::{abduct, adjudicate, amuck, axial};
 use anyhow::{anyhow, Context, Result};
 use serde::de::DeserializeOwned;
 use serde_json;
@@ -26,7 +26,7 @@ pub enum ReportBundleKind {
     Amuck,
     Abduct,
     Adjudicate,
-    Audience,
+    Axial,
 }
 
 impl ReportBundleKind {
@@ -39,7 +39,7 @@ impl ReportBundleKind {
             Self::Amuck => "amuck",
             Self::Abduct => "abduct",
             Self::Adjudicate => "adjudicate",
-            Self::Audience => "audience",
+            Self::Axial => "axial",
         }
     }
 
@@ -52,7 +52,7 @@ impl ReportBundleKind {
             "amuck" => Some(Self::Amuck),
             "abduct" => Some(Self::Abduct),
             "adjudicate" => Some(Self::Adjudicate),
-            "audience" => Some(Self::Audience),
+            "axial" => Some(Self::Axial),
             _ => None,
         }
     }
@@ -67,7 +67,7 @@ pub enum ReportBundlePayload {
     Amuck(amuck::AmuckReport),
     Abduct(abduct::AbductReport),
     Adjudicate(adjudicate::AdjudicateReport),
-    Audience(audience::AudienceReport),
+    Axial(axial::AxialReport),
 }
 
 impl ReportBundlePayload {
@@ -80,7 +80,7 @@ impl ReportBundlePayload {
             Self::Amuck(_) => ReportBundleKind::Amuck,
             Self::Abduct(_) => ReportBundleKind::Abduct,
             Self::Adjudicate(_) => ReportBundleKind::Adjudicate,
-            Self::Audience(_) => ReportBundleKind::Audience,
+            Self::Axial(_) => ReportBundleKind::Axial,
         }
     }
 
@@ -93,7 +93,7 @@ impl ReportBundlePayload {
             Self::Amuck(v) => serde_json::to_string(v),
             Self::Abduct(v) => serde_json::to_string(v),
             Self::Adjudicate(v) => serde_json::to_string(v),
-            Self::Audience(v) => serde_json::to_string(v),
+            Self::Axial(v) => serde_json::to_string(v),
         }
         .context("serializing report payload as json")?;
         Ok(encoded)
@@ -262,7 +262,7 @@ pub fn import_report_file(input: &Path, output: &Path) -> Result<ReportBundleKin
         ReportBundlePayload::Amuck(v) => serde_json::to_string_pretty(v),
         ReportBundlePayload::Abduct(v) => serde_json::to_string_pretty(v),
         ReportBundlePayload::Adjudicate(v) => serde_json::to_string_pretty(v),
-        ReportBundlePayload::Audience(v) => serde_json::to_string_pretty(v),
+        ReportBundlePayload::Axial(v) => serde_json::to_string_pretty(v),
     }
     .context("serializing imported report")?;
     fs::write(output, json).with_context(|| format!("writing {}", output.display()))?;
@@ -292,8 +292,8 @@ fn load_payload_for_kind(kind: ReportBundleKind, input: &Path) -> Result<ReportB
         ReportBundleKind::Adjudicate => ReportBundlePayload::Adjudicate(load_json_or_yaml::<
             adjudicate::AdjudicateReport,
         >(input)?),
-        ReportBundleKind::Audience => {
-            ReportBundlePayload::Audience(load_json_or_yaml::<audience::AudienceReport>(input)?)
+        ReportBundleKind::Axial => {
+            ReportBundlePayload::Axial(load_json_or_yaml::<axial::AxialReport>(input)?)
         }
     })
 }
@@ -431,8 +431,8 @@ fn parse_payload(kind: ReportBundleKind, payload_json: &str) -> Result<ReportBun
         ReportBundleKind::Adjudicate => ReportBundlePayload::Adjudicate(serde_json::from_str::<
             adjudicate::AdjudicateReport,
         >(payload_json)?),
-        ReportBundleKind::Audience => ReportBundlePayload::Audience(serde_json::from_str::<
-            audience::AudienceReport,
+        ReportBundleKind::Axial => ReportBundlePayload::Axial(serde_json::from_str::<
+            axial::AxialReport,
         >(payload_json)?),
     })
 }
@@ -908,10 +908,10 @@ mod tests {
         }
     }
 
-    fn sample_audience_report() -> audience::AudienceReport {
+    fn sample_axial_report() -> axial::AxialReport {
         let mut signal_counts = BTreeMap::new();
         signal_counts.insert("panic_signal".to_string(), 1);
-        audience::AudienceReport {
+        axial::AxialReport {
             created_at: chrono::Utc::now().to_rfc3339(),
             target: PathBuf::from("src/main.rs"),
             executed_program: Some("panic-attack".to_string()),
@@ -919,7 +919,7 @@ mod tests {
             observed_runs: 1,
             observed_reports: 0,
             language: "en".to_string(),
-            run_observations: vec![audience::RunObservation {
+            run_observations: vec![axial::RunObservation {
                 run_index: 1,
                 success: false,
                 exit_code: Some(1),
@@ -931,14 +931,14 @@ mod tests {
                 stdout_tail: Vec::new(),
                 stderr_head: vec!["panic".to_string()],
                 stderr_tail: vec!["panic".to_string()],
-                matches: vec![audience::PatternMatch {
+                matches: vec![axial::PatternMatch {
                     mode: "grep".to_string(),
                     pattern: "panic".to_string(),
                     line_no: 1,
                     line: "panic".to_string(),
                     distance: None,
                 }],
-                signals: vec![audience::Signal {
+                signals: vec![axial::Signal {
                     severity: "high".to_string(),
                     name: "panic_signal".to_string(),
                     evidence: "panic found in stderr".to_string(),
@@ -948,7 +948,7 @@ mod tests {
             report_observations: Vec::new(),
             signal_counts,
             recommendations: vec!["review panic path".to_string()],
-            aspell: Some(audience::SpellcheckSummary {
+            aspell: Some(axial::SpellcheckSummary {
                 lang: "en".to_string(),
                 total_misspellings: 0,
                 run_observations_with_misspellings: 0,
@@ -1055,13 +1055,13 @@ mod tests {
     }
 
     #[test]
-    fn report_bundle_roundtrip_audience() {
-        let bundle = ReportBundle::new(ReportBundlePayload::Audience(sample_audience_report()));
+    fn report_bundle_roundtrip_axial() {
+        let bundle = ReportBundle::new(ReportBundlePayload::Axial(sample_axial_report()));
         let rendered = render_report_bundle(&bundle).expect("render should succeed");
         let parsed = parse_report_bundle(&rendered).expect("parse should succeed");
-        assert_eq!(parsed.kind(), ReportBundleKind::Audience);
+        assert_eq!(parsed.kind(), ReportBundleKind::Axial);
         let payload = match parsed.payload {
-            ReportBundlePayload::Audience(v) => v,
+            ReportBundlePayload::Axial(v) => v,
             _ => panic!("wrong payload type"),
         };
         assert_eq!(payload.observed_runs, 1);
@@ -1102,8 +1102,8 @@ mod tests {
                 ReportBundlePayload::Adjudicate(sample_adjudicate_report()),
             ),
             (
-                ReportBundleKind::Audience,
-                ReportBundlePayload::Audience(sample_audience_report()),
+                ReportBundleKind::Axial,
+                ReportBundlePayload::Axial(sample_axial_report()),
             ),
         ];
 
@@ -1126,7 +1126,7 @@ mod tests {
                 ReportBundlePayload::Amuck(v) => serde_json::to_string_pretty(v),
                 ReportBundlePayload::Abduct(v) => serde_json::to_string_pretty(v),
                 ReportBundlePayload::Adjudicate(v) => serde_json::to_string_pretty(v),
-                ReportBundlePayload::Audience(v) => serde_json::to_string_pretty(v),
+                ReportBundlePayload::Axial(v) => serde_json::to_string_pretty(v),
             }
             .expect("payload should serialize");
             fs::write(&input, json).expect("input should write");
@@ -1155,8 +1155,8 @@ mod tests {
                 ReportBundleKind::Adjudicate => {
                     serde_json::from_str::<adjudicate::AdjudicateReport>(&output_body).map(|_| ())
                 }
-                ReportBundleKind::Audience => {
-                    serde_json::from_str::<audience::AudienceReport>(&output_body).map(|_| ())
+                ReportBundleKind::Axial => {
+                    serde_json::from_str::<axial::AxialReport>(&output_body).map(|_| ())
                 }
             };
             assert!(

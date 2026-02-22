@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
 
-//! Audience observer: listen to target reactions from tool executions and reports.
+//! Axial observer: observe target reactions across attack axes from tool
+//! executions and report artifacts.
 
 use crate::abduct::AbductReport;
 use crate::amuck::AmuckReport;
+use crate::i18n::{t, Lang};
 use crate::report;
 use anyhow::{anyhow, Context, Result};
 use serde::{Deserialize, Serialize};
@@ -20,16 +22,8 @@ pub struct ExecutionCommand {
     pub args: Vec<String>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum AudienceLang {
-    En,
-    Es,
-    Fr,
-    De,
-}
-
 #[derive(Debug, Clone)]
-pub struct AudienceConfig {
+pub struct AxialConfig {
     pub target: PathBuf,
     pub execute: Option<ExecutionCommand>,
     pub repeat: usize,
@@ -40,13 +34,13 @@ pub struct AudienceConfig {
     pub grep_patterns: Vec<String>,
     pub agrep_patterns: Vec<String>,
     pub agrep_distance: usize,
-    pub lang: AudienceLang,
+    pub lang: Lang,
     pub aspell: bool,
     pub aspell_lang: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AudienceReport {
+pub struct AxialReport {
     pub created_at: String,
     pub target: PathBuf,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -143,7 +137,7 @@ pub struct SpellcheckSummary {
     pub report_observations_with_misspellings: usize,
 }
 
-pub fn run(config: AudienceConfig) -> Result<AudienceReport> {
+pub fn run(config: AxialConfig) -> Result<AxialReport> {
     if !config.target.exists() {
         return Err(anyhow!("target {} does not exist", config.target.display()));
     }
@@ -161,14 +155,14 @@ pub fn run(config: AudienceConfig) -> Result<AudienceReport> {
     }
     if config.execute.is_none() && config.reports.is_empty() {
         return Err(anyhow!(
-            "audience needs --exec-program or at least one --report"
+            "axial needs --exec-program or at least one --report"
         ));
     }
 
     let aspell_lang = config
         .aspell_lang
         .clone()
-        .unwrap_or_else(|| default_aspell_lang(config.lang).to_string());
+        .unwrap_or_else(|| config.lang.aspell_code().to_string());
 
     // Compile search strategy once so run and report observations stay consistent.
     let matcher = PatternMatcher {
@@ -241,14 +235,14 @@ pub fn run(config: AudienceConfig) -> Result<AudienceReport> {
         None
     };
 
-    Ok(AudienceReport {
+    Ok(AxialReport {
         created_at: chrono::Utc::now().to_rfc3339(),
         target: config.target,
         executed_program: config.execute.as_ref().map(|e| e.program.clone()),
         repeat: config.repeat,
         observed_runs: run_observations.len(),
         observed_reports: report_observations.len(),
-        language: lang_code(config.lang).to_string(),
+        language: config.lang.code().to_string(),
         run_observations,
         report_observations,
         signal_counts,
@@ -257,73 +251,68 @@ pub fn run(config: AudienceConfig) -> Result<AudienceReport> {
     })
 }
 
-pub fn write_report(report: &AudienceReport, path: &Path) -> Result<()> {
+pub fn write_report(report: &AxialReport, path: &Path) -> Result<()> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)
             .with_context(|| format!("creating report parent directory {}", parent.display()))?;
     }
-    let json = serde_json::to_string_pretty(report).context("serializing audience report")?;
+    let json = serde_json::to_string_pretty(report).context("serializing axial report")?;
     fs::write(path, json).with_context(|| format!("writing report {}", path.display()))?;
     Ok(())
 }
 
-pub fn write_markdown(report: &AudienceReport, path: &Path) -> Result<()> {
+pub fn write_markdown(report: &AxialReport, path: &Path) -> Result<()> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)
             .with_context(|| format!("creating markdown parent {}", parent.display()))?;
     }
+    let lang = Lang::from_code(&report.language).unwrap_or_default();
     // Keep markdown export stable and machine-diff-friendly for CI artifact review.
     let mut lines = Vec::new();
-    lines.push(format!(
-        "# {}",
-        tr(report.language.as_str(), "audience_report_title")
-    ));
+    lines.push(format!("# {}", t(lang, "axial.title")));
     lines.push(String::new());
     lines.push(format!(
         "{}: `{}`",
-        tr(report.language.as_str(), "target"),
+        t(lang, "axial.target"),
         report.target.display()
     ));
     lines.push(format!(
         "{}: `{}`",
-        tr(report.language.as_str(), "created_at"),
+        t(lang, "axial.created_at"),
         report.created_at
     ));
     lines.push(format!(
         "{}: `{}`",
-        tr(report.language.as_str(), "language"),
+        t(lang, "axial.language"),
         report.language
     ));
     lines.push(format!(
         "{}: {}",
-        tr(report.language.as_str(), "observed_runs"),
+        t(lang, "axial.observed_runs"),
         report.observed_runs
     ));
     lines.push(format!(
         "{}: {}",
-        tr(report.language.as_str(), "observed_reports"),
+        t(lang, "axial.observed_reports"),
         report.observed_reports
     ));
     lines.push(String::new());
-    lines.push(format!("## {}", tr(report.language.as_str(), "signals")));
+    lines.push(format!("## {}", t(lang, "axial.signals")));
     if report.signal_counts.is_empty() {
-        lines.push(format!("- {}", tr(report.language.as_str(), "none")));
+        lines.push(format!("- {}", t(lang, "axial.none")));
     } else {
         for (name, count) in &report.signal_counts {
             lines.push(format!("- `{}`: {}", name, count));
         }
     }
     lines.push(String::new());
-    lines.push(format!(
-        "## {}",
-        tr(report.language.as_str(), "recommendations")
-    ));
+    lines.push(format!("## {}", t(lang, "axial.recommendations")));
     for rec in &report.recommendations {
         lines.push(format!("- {}", rec));
     }
     if let Some(spell) = &report.aspell {
         lines.push(String::new());
-        lines.push(format!("## {}", tr(report.language.as_str(), "spelling")));
+        lines.push(format!("## {}", t(lang, "axial.spelling")));
         lines.push(format!("- lang: `{}`", spell.lang));
         lines.push(format!(
             "- total misspellings: {}",
@@ -349,7 +338,7 @@ pub fn convert_markdown_with_pandoc(markdown: &Path, to: &str, output: &Path) ->
         fs::create_dir_all(parent)
             .with_context(|| format!("creating pandoc parent {}", parent.display()))?;
     }
-    // Use pandoc as an optional post-processing step; core audience output remains JSON/Markdown.
+    // Use pandoc as an optional post-processing step; core axial output remains JSON/Markdown.
     let out = Command::new("pandoc")
         .arg(markdown)
         .arg("-f")
@@ -658,31 +647,22 @@ fn clamp_output(mut value: String) -> String {
 
 fn build_recommendations(
     signal_counts: &BTreeMap<String, usize>,
-    lang: AudienceLang,
+    lang: Lang,
 ) -> Vec<String> {
     let mut recommendations = Vec::new();
     if signal_counts.get("crash_signal").copied().unwrap_or(0) > 0 {
-        recommendations.push(tr_lang(lang, "rec_crash").to_string());
+        recommendations.push(t(lang, "rec.crash").to_string());
     }
     if signal_counts.get("panic_signal").copied().unwrap_or(0) > 0 {
-        recommendations.push(tr_lang(lang, "rec_panic").to_string());
+        recommendations.push(t(lang, "rec.panic").to_string());
     }
     if signal_counts.get("timeout_signal").copied().unwrap_or(0) > 0 {
-        recommendations.push(tr_lang(lang, "rec_timeout").to_string());
+        recommendations.push(t(lang, "rec.timeout").to_string());
     }
     if recommendations.is_empty() {
-        recommendations.push(tr_lang(lang, "rec_none").to_string());
+        recommendations.push(t(lang, "rec.none").to_string());
     }
     recommendations
-}
-
-fn default_aspell_lang(lang: AudienceLang) -> &'static str {
-    match lang {
-        AudienceLang::En => "en",
-        AudienceLang::Es => "es",
-        AudienceLang::Fr => "fr",
-        AudienceLang::De => "de",
-    }
 }
 
 fn summarize_spellcheck(
@@ -894,105 +874,6 @@ fn levenshtein(a: &str, b: &str) -> usize {
     prev[b_chars.len()]
 }
 
-fn lang_code(lang: AudienceLang) -> &'static str {
-    match lang {
-        AudienceLang::En => "en",
-        AudienceLang::Es => "es",
-        AudienceLang::Fr => "fr",
-        AudienceLang::De => "de",
-    }
-}
-
-fn tr(language: &str, key: &str) -> &'static str {
-    match language {
-        "es" => match key {
-            "audience_report_title" => "Informe de Audience",
-            "target" => "Objetivo",
-            "created_at" => "Creado",
-            "language" => "Idioma",
-            "observed_runs" => "Ejecuciones observadas",
-            "observed_reports" => "Informes observados",
-            "signals" => "Senales",
-            "recommendations" => "Recomendaciones",
-            "spelling" => "Ortografia",
-            "none" => "ninguno",
-            _ => "desconocido",
-        },
-        "fr" => match key {
-            "audience_report_title" => "Rapport Audience",
-            "target" => "Cible",
-            "created_at" => "Cree le",
-            "language" => "Langue",
-            "observed_runs" => "Executions observees",
-            "observed_reports" => "Rapports observes",
-            "signals" => "Signaux",
-            "recommendations" => "Recommandations",
-            "spelling" => "Orthographe",
-            "none" => "aucun",
-            _ => "inconnu",
-        },
-        "de" => match key {
-            "audience_report_title" => "Audience Bericht",
-            "target" => "Ziel",
-            "created_at" => "Erstellt am",
-            "language" => "Sprache",
-            "observed_runs" => "Beobachtete Laufe",
-            "observed_reports" => "Beobachtete Berichte",
-            "signals" => "Signale",
-            "recommendations" => "Empfehlungen",
-            "spelling" => "Rechtschreibung",
-            "none" => "keine",
-            _ => "unbekannt",
-        },
-        _ => match key {
-            "audience_report_title" => "Audience Report",
-            "target" => "Target",
-            "created_at" => "Created",
-            "language" => "Language",
-            "observed_runs" => "Observed Runs",
-            "observed_reports" => "Observed Reports",
-            "signals" => "Signals",
-            "recommendations" => "Recommendations",
-            "spelling" => "Spelling",
-            "none" => "none",
-            _ => "unknown",
-        },
-    }
-}
-
-fn tr_lang(lang: AudienceLang, key: &str) -> &'static str {
-    match lang {
-        AudienceLang::Es => match key {
-            "rec_crash" => "priorizar triage de fallos y recoleccion de trazas",
-            "rec_panic" => "auditar rutas panic/fatal por supuestos inseguros",
-            "rec_timeout" => "revisar rutas largas y agregar instrumentacion watchdog",
-            "rec_none" => "no se observaron senales criticas",
-            _ => "",
-        },
-        AudienceLang::Fr => match key {
-            "rec_crash" => "prioriser le triage des crashs et la collecte des traces",
-            "rec_panic" => "auditer les chemins panic/fatal pour hypotheses dangereuses",
-            "rec_timeout" => "examiner les chemins longs et ajouter un watchdog",
-            "rec_none" => "aucun signal critique observe",
-            _ => "",
-        },
-        AudienceLang::De => match key {
-            "rec_crash" => "Crash-Triage und Backtrace-Erfassung priorisieren",
-            "rec_panic" => "Panic/Fatal-Pfade auf unsichere Annahmen pruefen",
-            "rec_timeout" => "langlaufende Pfade pruefen und Watchdog hinzufuegen",
-            "rec_none" => "keine kritischen Reaktionssignale beobachtet",
-            _ => "",
-        },
-        AudienceLang::En => match key {
-            "rec_crash" => "prioritize crash triage and backtrace collection",
-            "rec_panic" => "audit panic/fatal paths for unsafe assumptions",
-            "rec_timeout" => "review long-running paths and add watchdog instrumentation",
-            "rec_none" => "no critical reaction signals observed",
-            _ => "",
-        },
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1000,7 +881,7 @@ mod tests {
     use tempfile::TempDir;
 
     #[test]
-    fn audience_reads_amuck_report_signals() {
+    fn axial_reads_amuck_report_signals() {
         let dir = TempDir::new().expect("tempdir should create");
         let target = dir.path().join("target.rs");
         fs::write(&target, "fn main() {}\n").expect("target should write");
@@ -1031,7 +912,7 @@ mod tests {
         )
         .expect("report should write");
 
-        let out = run(AudienceConfig {
+        let out = run(AxialConfig {
             target,
             execute: None,
             repeat: 1,
@@ -1042,11 +923,11 @@ mod tests {
             grep_patterns: vec!["combination".to_string()],
             agrep_patterns: vec!["combinatoin".to_string()],
             agrep_distance: 2,
-            lang: AudienceLang::En,
+            lang: Lang::En,
             aspell: false,
             aspell_lang: None,
         })
-        .expect("audience should run");
+        .expect("axial should run");
 
         assert_eq!(out.observed_reports, 1);
         assert!(!out.signal_counts.is_empty());
@@ -1059,7 +940,7 @@ mod tests {
     #[test]
     fn markdown_writer_outputs_report() {
         let dir = TempDir::new().expect("tempdir should create");
-        let report = AudienceReport {
+        let report = AxialReport {
             created_at: chrono::Utc::now().to_rfc3339(),
             target: PathBuf::from("src/main.rs"),
             executed_program: None,
@@ -1076,6 +957,6 @@ mod tests {
         let path = dir.path().join("audience.md");
         write_markdown(&report, &path).expect("markdown should write");
         let body = fs::read_to_string(path).expect("markdown should read");
-        assert!(body.contains("Audience Report"));
+        assert!(body.contains("Axial Report"));
     }
 }
