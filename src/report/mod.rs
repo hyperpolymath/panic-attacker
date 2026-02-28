@@ -7,6 +7,7 @@ pub mod formatter;
 pub mod generator;
 pub mod gui;
 pub mod output;
+pub mod sarif;
 pub mod tui;
 
 use crate::types::*;

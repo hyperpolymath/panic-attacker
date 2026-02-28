@@ -377,7 +377,7 @@ pub struct AssailReport {
     pub taint_matrix: TaintMatrix,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ProgramStatistics {
     pub total_lines: usize,
     pub unsafe_blocks: usize,

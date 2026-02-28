@@ -27,5 +27,6 @@ pub mod kanren;
 pub mod panll;
 pub mod report;
 pub mod signatures;
+pub mod sweep;
 pub mod storage;
 pub mod types;
