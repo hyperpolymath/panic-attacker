@@ -6,6 +6,7 @@ pub mod diff;
 pub mod formatter;
 pub mod generator;
 pub mod gui;
+pub mod migration;
 pub mod output;
 pub mod sarif;
 pub mod tui;

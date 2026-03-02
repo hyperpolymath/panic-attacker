@@ -8,6 +8,7 @@
 [![codecov](https://codecov.io/gh/hyperpolymath/panic-attacker/branch/main/graph/badge.svg)](https://codecov.io/gh/hyperpolymath/panic-attacker)
 [![License: PMPL](https://img.shields.io/badge/License-PMPL--1.0--or--later-blue.svg)](LICENSE)
 [![MSRV](https://img.shields.io/badge/MSRV-1.85.0-blue)](Cargo.toml)
+[![panic-tested](badges/panic-tested-passing.svg)](#panic-tested-badge)
 
 Stress testing and bug signature detection for source code and binaries.
 47 languages. 6 attack axes. Logic-based inference.
@@ -316,6 +317,26 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 ## Security
 
 See [SECURITY.md](SECURITY.md).
+
+## Panic-Tested Badge
+
+Add this badge to your repo's README to show it has been tested with panic-attack:
+
+```markdown
+<!-- panic-attack passing (green) -->
+[![panic-tested](https://raw.githubusercontent.com/hyperpolymath/panic-attacker/main/badges/panic-tested-passing.svg)](https://github.com/hyperpolymath/panic-attacker)
+
+<!-- panic-attack tested (amber, neutral) -->
+[![panic-tested](https://raw.githubusercontent.com/hyperpolymath/panic-attacker/main/badges/panic-tested.svg)](https://github.com/hyperpolymath/panic-attacker)
+
+<!-- panic-attack failing (red, findings above threshold) -->
+[![panic-tested](https://raw.githubusercontent.com/hyperpolymath/panic-attacker/main/badges/panic-tested-failing.svg)](https://github.com/hyperpolymath/panic-attacker)
+```
+
+**Badge variants:**
+- **passing** (green): Zero critical/high findings, or all findings reviewed and accepted
+- **tested** (amber): Scan complete, findings present but not yet triaged
+- **failing** (red): Critical or high findings that need attention
 
 ## License
 

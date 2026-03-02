@@ -10,10 +10,140 @@
 use crate::types::*;
 use anyhow::Result;
 use regex::Regex;
+use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
+
+// Thread-local accumulators for migration analysis.
+// These collect deprecated/modern API counts across all files during a single
+// analyze() run, then get consumed by build_migration_metrics().
+thread_local! {
+    static MIGRATION_DEPRECATED: RefCell<Vec<DeprecatedPattern>> = RefCell::new(Vec::new());
+    static MIGRATION_DEPRECATED_COUNT: RefCell<usize> = const { RefCell::new(0) };
+    static MIGRATION_MODERN_COUNT: RefCell<usize> = const { RefCell::new(0) };
+    static MIGRATION_FILE_COUNT: RefCell<usize> = const { RefCell::new(0) };
+    static MIGRATION_LINE_COUNT: RefCell<usize> = const { RefCell::new(0) };
+}
+
+/// Reset migration thread-local accumulators before a new scan
+pub fn reset_migration_accumulators() {
+    MIGRATION_DEPRECATED.with(|cell| cell.borrow_mut().clear());
+    MIGRATION_DEPRECATED_COUNT.with(|cell| *cell.borrow_mut() = 0);
+    MIGRATION_MODERN_COUNT.with(|cell| *cell.borrow_mut() = 0);
+    MIGRATION_FILE_COUNT.with(|cell| *cell.borrow_mut() = 0);
+    MIGRATION_LINE_COUNT.with(|cell| *cell.borrow_mut() = 0);
+}
+
+/// Increment migration file/line counters (called per-file during scan)
+pub fn record_migration_file(line_count: usize) {
+    MIGRATION_FILE_COUNT.with(|cell| *cell.borrow_mut() += 1);
+    MIGRATION_LINE_COUNT.with(|cell| *cell.borrow_mut() += line_count);
+}
+
+/// Build MigrationMetrics from accumulated thread-local data
+pub fn build_migration_metrics(target: &Path) -> MigrationMetrics {
+    let deprecated_count = MIGRATION_DEPRECATED_COUNT.with(|cell| *cell.borrow());
+    let modern_count = MIGRATION_MODERN_COUNT.with(|cell| *cell.borrow());
+    let deprecated_patterns = MIGRATION_DEPRECATED.with(|cell| cell.borrow().clone());
+    let file_count = MIGRATION_FILE_COUNT.with(|cell| *cell.borrow());
+    let line_count = MIGRATION_LINE_COUNT.with(|cell| *cell.borrow());
+
+    let total = deprecated_count + modern_count;
+    let api_migration_ratio = if total > 0 {
+        modern_count as f64 / total as f64
+    } else {
+        1.0 // No API usage detected = fully migrated (or no code)
+    };
+
+    let config_format = Analyzer::detect_rescript_config(target);
+
+    // Read config for version detection
+    let config_path = if target.is_dir() {
+        if target.join("rescript.json").exists() {
+            Some(target.join("rescript.json"))
+        } else if target.join("bsconfig.json").exists() {
+            Some(target.join("bsconfig.json"))
+        } else {
+            None
+        }
+    } else {
+        let parent = target.parent().unwrap_or(target);
+        if parent.join("rescript.json").exists() {
+            Some(parent.join("rescript.json"))
+        } else if parent.join("bsconfig.json").exists() {
+            Some(parent.join("bsconfig.json"))
+        } else {
+            None
+        }
+    };
+    let config_content = config_path.and_then(|p| fs::read_to_string(p).ok());
+
+    let version_bracket = Analyzer::detect_rescript_version(
+        config_format,
+        deprecated_count,
+        modern_count,
+        config_content.as_deref(),
+    );
+
+    // Detect JSX version, uncurried mode, module format from config
+    let (jsx_version, uncurried, module_format) = if let Some(ref content) = config_content {
+        let jsx = if content.contains("\"version\": 4") || content.contains("\"version\":4") {
+            Some(4u8)
+        } else if content.contains("\"version\": 3") || content.contains("\"version\":3") {
+            Some(3u8)
+        } else {
+            None
+        };
+        let uncurried = content.contains("\"uncurried\"");
+        let module = if content.contains("\"esmodule\"") {
+            Some("esmodule".to_string())
+        } else if content.contains("\"commonjs\"") {
+            Some("commonjs".to_string())
+        } else {
+            None
+        };
+        (jsx, uncurried, module)
+    } else {
+        (None, false, None)
+    };
+
+    // Health score: weighted combination of factors
+    let config_score = match config_format {
+        ReScriptConfigFormat::RescriptJson => 1.0,
+        ReScriptConfigFormat::Both => 0.5,
+        ReScriptConfigFormat::BsConfig => 0.0,
+        ReScriptConfigFormat::None => 0.5,
+    };
+    let jsx_score = match jsx_version {
+        Some(4) => 1.0,
+        Some(3) => 0.3,
+        _ => 0.5,
+    };
+    let uncurried_score = if uncurried { 1.0 } else { 0.3 };
+    let health_score = (api_migration_ratio * 0.5)
+        + (config_score * 0.2)
+        + (jsx_score * 0.15)
+        + (uncurried_score * 0.15);
+
+    MigrationMetrics {
+        deprecated_api_count: deprecated_count,
+        modern_api_count: modern_count,
+        api_migration_ratio,
+        health_score: (health_score * 100.0).round() / 100.0,
+        config_format,
+        version_bracket,
+        build_time_ms: None,
+        bundle_size_bytes: None,
+        file_count,
+        rescript_lines: line_count,
+        deprecated_patterns,
+        jsx_version,
+        uncurried,
+        module_format,
+    }
+}
 
 /// Pre-compiled regexes for hot-path pattern matching.
 /// Using OnceLock avoids recompiling on every file analyzed.
@@ -79,6 +209,9 @@ impl Analyzer {
         &self,
         mut accumulator: Option<&mut crate::attestation::EvidenceAccumulator>,
     ) -> Result<AssailReport> {
+        // Reset migration accumulators for a clean scan
+        reset_migration_accumulators();
+
         // Global aggregates are intentionally maintained alongside per-file analysis
         // so output can support both campaign-level scoring and local triage.
         let mut global_stats = ProgramStatistics {
@@ -234,6 +367,7 @@ impl Analyzer {
                 }
                 // ML family
                 Language::ReScript => {
+                    record_migration_file(file_stats.total_lines);
                     self.analyze_rescript(
                         &content,
                         &mut file_stats,
@@ -419,6 +553,13 @@ impl Analyzer {
         let dependency_graph = Self::build_dependency_graph(&file_statistics, &frameworks);
         let taint_matrix = Self::build_taint_matrix(&all_weak_points, &frameworks);
 
+        // Build migration metrics for ReScript projects
+        let migration_metrics = if self.language == Language::ReScript {
+            Some(build_migration_metrics(&self.target))
+        } else {
+            None
+        };
+
         Ok(AssailReport {
             program_path: self.target.clone(),
             language: self.language,
@@ -429,6 +570,7 @@ impl Analyzer {
             recommended_attacks,
             dependency_graph,
             taint_matrix,
+            migration_metrics,
         })
     }
 
@@ -1170,7 +1312,193 @@ impl Analyzer {
         stats.io_operations += content.matches("Deno.writeTextFile").count();
         stats.io_operations += content.matches("fetch(").count();
 
+        // === Migration analysis: deprecated Js.* APIs ===
+        let deprecated_js_apis: &[(&str, &str, DeprecatedCategory)] = &[
+            ("Js.Array2", "Array", DeprecatedCategory::JsApi),
+            ("Js.Array.", "Array", DeprecatedCategory::JsApi),
+            ("Js.String2", "String", DeprecatedCategory::JsApi),
+            ("Js.String.", "String", DeprecatedCategory::JsApi),
+            ("Js.Dict.", "Dict", DeprecatedCategory::OldDict),
+            ("Js.Console.", "Console", DeprecatedCategory::OldConsole),
+            ("Js.log", "Console.log", DeprecatedCategory::OldConsole),
+            ("Js.log2", "Console.log2", DeprecatedCategory::OldConsole),
+            ("Js.Promise.", "Promise", DeprecatedCategory::OldPromise),
+            ("Js.Nullable.", "Nullable", DeprecatedCategory::OldNullable),
+            ("Js.Float.", "Float", DeprecatedCategory::OldNumeric),
+            ("Js.Int.", "Int", DeprecatedCategory::OldNumeric),
+            ("Js.Math.", "Math", DeprecatedCategory::OldNumeric),
+            ("Js.Json.", "JSON", DeprecatedCategory::OldJson),
+            ("Js.Re.", "RegExp", DeprecatedCategory::OldRegExp),
+            ("Js.Date.", "Date (no core replacement yet)", DeprecatedCategory::OldDate),
+        ];
+
+        let mut deprecated_patterns = Vec::new();
+        let mut deprecated_count = 0usize;
+
+        for &(pattern, replacement, category) in deprecated_js_apis {
+            let count = content.matches(pattern).count();
+            if count > 0 {
+                deprecated_count += count;
+                deprecated_patterns.push(DeprecatedPattern {
+                    pattern: pattern.to_string(),
+                    replacement: replacement.to_string(),
+                    file_path: file_path.to_string(),
+                    line_number: 0,
+                    category,
+                    count,
+                });
+            }
+        }
+
+        // === Migration analysis: deprecated Belt.* APIs ===
+        let deprecated_belt_apis: &[&str] = &[
+            "Belt.Array", "Belt.List", "Belt.Map", "Belt.Set",
+            "Belt.Option", "Belt.Result", "Belt.Int", "Belt.Float",
+            "Belt.SortArray", "Belt.HashMap", "Belt.HashSet",
+            "Belt.MutableMap", "Belt.MutableSet", "Belt.MutableQueue",
+            "Belt.MutableStack", "Belt.Range",
+        ];
+
+        for pattern in deprecated_belt_apis {
+            let count = content.matches(pattern).count();
+            if count > 0 {
+                deprecated_count += count;
+                // Belt.X -> X (strip "Belt." prefix)
+                let replacement = pattern.strip_prefix("Belt.").unwrap_or(pattern);
+                deprecated_patterns.push(DeprecatedPattern {
+                    pattern: pattern.to_string(),
+                    replacement: replacement.to_string(),
+                    file_path: file_path.to_string(),
+                    line_number: 0,
+                    category: DeprecatedCategory::BeltApi,
+                    count,
+                });
+            }
+        }
+
+        // === Migration analysis: modern @rescript/core APIs (positive signals) ===
+        let modern_apis: &[&str] = &[
+            "Array.", "String.", "Dict.", "Console.", "Promise.",
+            "Nullable.", "Float.", "Int.", "Math.", "JSON.",
+            "RegExp.", "Map.", "Set.", "Option.", "Result.",
+            "Error.", "Iterator.", "AsyncIterator.", "BigInt.",
+        ];
+
+        let mut modern_count = 0usize;
+        for pattern in modern_apis {
+            modern_count += content.matches(pattern).count();
+        }
+        // Subtract Js.* false positives from modern counts (Js.Array. matched both)
+        // Modern APIs are counted independently since they don't have a "Js." prefix.
+        // The above count may over-count in files with imports, but it's a useful heuristic.
+
+        // === Migration analysis: old-style patterns ===
+        let old_json = content.matches("Js.Json.classify").count();
+        if old_json > 0 {
+            deprecated_count += old_json;
+            deprecated_patterns.push(DeprecatedPattern {
+                pattern: "Js.Json.classify".to_string(),
+                replacement: "JSON.Classify.classify".to_string(),
+                file_path: file_path.to_string(),
+                line_number: 0,
+                category: DeprecatedCategory::OldJson,
+                count: old_json,
+            });
+        }
+
+        let react_dom_style = content.matches("ReactDOMStyle.make").count()
+            + content.matches("ReactDOM.Style.make").count();
+        if react_dom_style > 0 {
+            deprecated_count += react_dom_style;
+            deprecated_patterns.push(DeprecatedPattern {
+                pattern: "ReactDOMStyle.make / ReactDOM.Style.make".to_string(),
+                replacement: "inline record style={{...}}".to_string(),
+                file_path: file_path.to_string(),
+                line_number: 0,
+                category: DeprecatedCategory::OldReactStyle,
+                count: react_dom_style,
+            });
+        }
+
+        // Store deprecated patterns in a thread-local accumulator
+        // (The caller collects them after all files are analyzed)
+        MIGRATION_DEPRECATED.with(|cell| {
+            cell.borrow_mut().extend(deprecated_patterns);
+        });
+        MIGRATION_DEPRECATED_COUNT.with(|cell| {
+            *cell.borrow_mut() += deprecated_count;
+        });
+        MIGRATION_MODERN_COUNT.with(|cell| {
+            *cell.borrow_mut() += modern_count;
+        });
+
         Ok(())
+    }
+
+    /// Detect ReScript config format by checking for bsconfig.json and rescript.json
+    fn detect_rescript_config(target: &std::path::Path) -> ReScriptConfigFormat {
+        let dir = if target.is_dir() {
+            target.to_path_buf()
+        } else {
+            target.parent().unwrap_or(target).to_path_buf()
+        };
+
+        let has_bsconfig = dir.join("bsconfig.json").exists();
+        let has_rescript = dir.join("rescript.json").exists();
+
+        match (has_bsconfig, has_rescript) {
+            (true, true) => ReScriptConfigFormat::Both,
+            (true, false) => ReScriptConfigFormat::BsConfig,
+            (false, true) => ReScriptConfigFormat::RescriptJson,
+            (false, false) => ReScriptConfigFormat::None,
+        }
+    }
+
+    /// Detect ReScript version bracket from config + API usage ratios
+    fn detect_rescript_version(
+        config_format: ReScriptConfigFormat,
+        deprecated_count: usize,
+        modern_count: usize,
+        config_content: Option<&str>,
+    ) -> ReScriptVersionBracket {
+        // Check config content for version hints
+        if let Some(content) = config_content {
+            if content.contains("\"uncurried\"") && content.contains("\"v13") {
+                return ReScriptVersionBracket::V13PreRelease;
+            }
+        }
+
+        let total = deprecated_count + modern_count;
+        let modern_ratio = if total > 0 {
+            modern_count as f64 / total as f64
+        } else {
+            0.5
+        };
+
+        match config_format {
+            ReScriptConfigFormat::BsConfig => {
+                if modern_ratio < 0.1 {
+                    ReScriptVersionBracket::BuckleScript
+                } else {
+                    ReScriptVersionBracket::V11
+                }
+            }
+            ReScriptConfigFormat::Both => ReScriptVersionBracket::V12Alpha,
+            ReScriptConfigFormat::RescriptJson => {
+                if modern_ratio > 0.8 {
+                    ReScriptVersionBracket::V12Current
+                } else {
+                    ReScriptVersionBracket::V12Stable
+                }
+            }
+            ReScriptConfigFormat::None => {
+                if modern_ratio > 0.5 {
+                    ReScriptVersionBracket::V12Current
+                } else {
+                    ReScriptVersionBracket::V11
+                }
+            }
+        }
     }
 
     fn analyze_ocaml(

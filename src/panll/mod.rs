@@ -219,6 +219,67 @@ fn extract_constraints(report: &AssaultReport) -> Vec<PanllConstraint> {
         });
     }
 
+    // Migration-specific constraints (when ReScript migration metrics are present)
+    if let Some(ref metrics) = report.assail_report.migration_metrics {
+        if metrics.deprecated_api_count > 0 {
+            id_counter += 1;
+            constraints.push(PanllConstraint {
+                id: format!("migration-deprecated-{}", id_counter),
+                description: format!(
+                    "{} deprecated Js.*/Belt.* API calls remaining (health: {:.0}%)",
+                    metrics.deprecated_api_count,
+                    metrics.health_score * 100.0
+                ),
+            });
+        }
+
+        if matches!(
+            metrics.config_format,
+            crate::types::ReScriptConfigFormat::BsConfig
+                | crate::types::ReScriptConfigFormat::Both
+        ) {
+            id_counter += 1;
+            constraints.push(PanllConstraint {
+                id: format!("migration-config-{}", id_counter),
+                description: format!(
+                    "bsconfig.json still present (migrate to rescript.json)"
+                ),
+            });
+        }
+
+        if matches!(metrics.jsx_version, Some(3)) {
+            id_counter += 1;
+            constraints.push(PanllConstraint {
+                id: format!("migration-jsx-{}", id_counter),
+                description: "JSX v3 detected (migrate to JSX v4)".to_string(),
+            });
+        }
+
+        if !metrics.uncurried {
+            id_counter += 1;
+            constraints.push(PanllConstraint {
+                id: format!("migration-uncurried-{}", id_counter),
+                description: "Curried-by-default mode (migrate to uncurried)".to_string(),
+            });
+        }
+
+        // Group deprecated patterns by category for summary constraints
+        let mut category_counts: std::collections::HashMap<String, usize> =
+            std::collections::HashMap::new();
+        for p in &metrics.deprecated_patterns {
+            *category_counts
+                .entry(format!("{:?}", p.category))
+                .or_insert(0) += p.count;
+        }
+        for (category, count) in &category_counts {
+            id_counter += 1;
+            constraints.push(PanllConstraint {
+                id: format!("migration-pattern-{}", id_counter),
+                description: format!("{} {} pattern occurrences to migrate", count, category),
+            });
+        }
+    }
+
     constraints
 }
 

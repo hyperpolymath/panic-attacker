@@ -215,6 +215,7 @@ fn check_panicbot_readiness() -> Diagnostic {
         recommended_attacks: vec![],
         dependency_graph: Default::default(),
         taint_matrix: Default::default(),
+        migration_metrics: None,
     };
 
     let json_ok = match serde_json::to_value(&test_report) {

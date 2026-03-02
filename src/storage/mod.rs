@@ -85,6 +85,27 @@ pub struct HexadSemantic {
     pub total_crashes: usize,
     pub robustness_score: f64,
     pub categories: Vec<String>,
+    /// Migration-specific semantic data (present when target is ReScript)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub migration: Option<MigrationSemantic>,
+}
+
+/// Migration-specific semantic data for VeriSimDB hexads
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MigrationSemantic {
+    /// Detected ReScript version bracket
+    pub detected_version: String,
+    /// Configuration format (bsconfig.json, rescript.json, both, none)
+    pub config_format: String,
+    /// Number of deprecated API calls found
+    pub deprecated_api_count: usize,
+    /// Number of modern @rescript/core API calls found
+    pub modern_api_count: usize,
+    /// Migration health score (0.0 - 1.0)
+    pub health_score: f64,
+    /// Snapshot label (if this was a migration-snapshot run)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub snapshot_label: Option<String>,
 }
 
 /// Build a VerisimDB hexad from an assault report
@@ -121,6 +142,20 @@ fn build_hexad(report: &AssaultReport) -> Result<PanicAttackHexad> {
 
     let document = serde_json::to_value(report)?;
 
+    // Build migration semantic if migration_metrics are present
+    let migration = report
+        .assail_report
+        .migration_metrics
+        .as_ref()
+        .map(|m| MigrationSemantic {
+            detected_version: format!("{}", m.version_bracket),
+            config_format: format!("{:?}", m.config_format),
+            deprecated_api_count: m.deprecated_api_count,
+            modern_api_count: m.modern_api_count,
+            health_score: m.health_score,
+            snapshot_label: None,
+        });
+
     Ok(PanicAttackHexad {
         schema: "verisimdb.hexad.v1".to_string(),
         id,
@@ -139,6 +174,7 @@ fn build_hexad(report: &AssaultReport) -> Result<PanicAttackHexad> {
             total_crashes: report.total_crashes,
             robustness_score: report.overall_assessment.robustness_score,
             categories,
+            migration,
         },
         document,
     })

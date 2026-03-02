@@ -375,6 +375,9 @@ pub struct AssailReport {
     pub dependency_graph: DependencyGraph,
     #[serde(default)]
     pub taint_matrix: TaintMatrix,
+    /// Migration-specific metrics (populated when target is ReScript)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub migration_metrics: Option<MigrationMetrics>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -536,6 +539,187 @@ pub struct AttackPattern {
     pub applicable_languages: Vec<Language>,
     pub applicable_frameworks: Vec<Framework>,
     pub command_template: String,
+}
+
+// ============================================================
+// ReScript Migration Analysis types
+// ============================================================
+
+/// ReScript version bracket determined by heuristic analysis of config
+/// format, API usage patterns, and dependency versions.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum ReScriptVersionBracket {
+    /// Pre-v11 BuckleScript era (bsconfig.json, bs-dependencies, Js.* APIs)
+    BuckleScript,
+    /// v11.x (bsconfig.json, early uncurried support)
+    V11,
+    /// v12.0-alpha / v12.0-beta (rescript.json transition)
+    V12Alpha,
+    /// v12.0.x - v12.1.x (stable rescript.json, mixed API usage)
+    V12Stable,
+    /// v12.2.0+ (rescript.json, @rescript/core primary)
+    V12Current,
+    /// v13.x pre-release (v13 features detected)
+    V13PreRelease,
+}
+
+impl std::fmt::Display for ReScriptVersionBracket {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ReScriptVersionBracket::BuckleScript => write!(f, "BuckleScript (pre-v11)"),
+            ReScriptVersionBracket::V11 => write!(f, "v11.x"),
+            ReScriptVersionBracket::V12Alpha => write!(f, "v12.0-alpha"),
+            ReScriptVersionBracket::V12Stable => write!(f, "v12.0.x-v12.1.x"),
+            ReScriptVersionBracket::V12Current => write!(f, "v12.2.0+"),
+            ReScriptVersionBracket::V13PreRelease => write!(f, "v13.x (pre-release)"),
+        }
+    }
+}
+
+/// ReScript project configuration format
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum ReScriptConfigFormat {
+    /// Legacy bsconfig.json only
+    BsConfig,
+    /// Modern rescript.json only
+    RescriptJson,
+    /// Both files present (transitional state)
+    Both,
+    /// No config found (library or incomplete project)
+    None,
+}
+
+/// Category of deprecated ReScript API usage
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum DeprecatedCategory {
+    /// Js.Array2, Js.String2, Js.Dict, etc.
+    JsApi,
+    /// Belt.Array, Belt.List, Belt.Map, etc.
+    BeltApi,
+    /// bsconfig.json fields (bs-dependencies, etc.)
+    BsConfig,
+    /// Curried-by-default function signatures
+    CurriedDefault,
+    /// JSX v3 or earlier syntax
+    OldJsx,
+    /// Js.Json.classify instead of JSON.Classify.classify
+    OldJson,
+    /// Js.Dict instead of Dict module
+    OldDict,
+    /// Js.Nullable instead of Nullable module
+    OldNullable,
+    /// Js.Console instead of Console module
+    OldConsole,
+    /// Js.Promise instead of Promise module
+    OldPromise,
+    /// Js.Float/Js.Int/Js.Math instead of Float/Int/Math
+    OldNumeric,
+    /// Js.Re instead of RegExp module
+    OldRegExp,
+    /// Js.Date (no modern replacement yet)
+    OldDate,
+    /// ReactDOMStyle.make or ReactDOM.Style.make (use inline records)
+    OldReactStyle,
+}
+
+/// A single deprecated pattern occurrence with location info
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeprecatedPattern {
+    /// The deprecated API pattern string (e.g. "Js.Array2")
+    pub pattern: String,
+    /// The modern replacement (e.g. "Array")
+    pub replacement: String,
+    /// File where the pattern was found
+    pub file_path: String,
+    /// Line number (0 if not available)
+    pub line_number: usize,
+    /// Category for grouping
+    pub category: DeprecatedCategory,
+    /// Number of occurrences in this file
+    pub count: usize,
+}
+
+/// Migration-specific metrics for a ReScript project
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MigrationMetrics {
+    /// Count of deprecated Js.* and Belt.* API calls
+    pub deprecated_api_count: usize,
+    /// Count of modern @rescript/core API calls
+    pub modern_api_count: usize,
+    /// Ratio of modern to total API calls (0.0 = all deprecated, 1.0 = all modern)
+    pub api_migration_ratio: f64,
+    /// Overall migration health score (0.0 = unmigrated, 1.0 = fully migrated)
+    pub health_score: f64,
+    /// Detected configuration format
+    pub config_format: ReScriptConfigFormat,
+    /// Detected version bracket
+    pub version_bracket: ReScriptVersionBracket,
+    /// Build time in milliseconds (if measured)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub build_time_ms: Option<u64>,
+    /// Bundle size in bytes (if measured)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bundle_size_bytes: Option<u64>,
+    /// Number of .res/.resi files
+    pub file_count: usize,
+    /// Total lines of ReScript code
+    pub rescript_lines: usize,
+    /// Individual deprecated patterns found
+    pub deprecated_patterns: Vec<DeprecatedPattern>,
+    /// JSX version detected (3 or 4, None if not detected)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub jsx_version: Option<u8>,
+    /// Whether uncurried mode is enabled
+    pub uncurried: bool,
+    /// Module format (esmodule, commonjs)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub module_format: Option<String>,
+}
+
+/// Snapshot of migration state at a point in time (for before/after comparison)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MigrationSnapshot {
+    /// Label for this snapshot (e.g. "before", "after", "v12-trial")
+    pub label: String,
+    /// ISO 8601 timestamp
+    pub timestamp: String,
+    /// Target path that was scanned
+    pub target_path: String,
+    /// The assail report from the scan
+    pub assail_report: AssailReport,
+    /// Migration-specific metrics
+    pub migration_metrics: MigrationMetrics,
+}
+
+/// Diff between two migration snapshots
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MigrationDiff {
+    /// Before snapshot label
+    pub before_label: String,
+    /// After snapshot label
+    pub after_label: String,
+    /// Health score change (positive = improvement)
+    pub health_delta: f64,
+    /// Deprecated API count change (negative = improvement)
+    pub deprecated_delta: i64,
+    /// Modern API count change (positive = improvement)
+    pub modern_delta: i64,
+    /// Build time change in ms (negative = improvement)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub build_time_delta_ms: Option<i64>,
+    /// Bundle size change in bytes (negative = improvement)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bundle_size_delta_bytes: Option<i64>,
+    /// Deprecated patterns that were removed
+    pub patterns_removed: Vec<DeprecatedPattern>,
+    /// Deprecated patterns that were added (regressions)
+    pub patterns_added: Vec<DeprecatedPattern>,
+    /// Version bracket change
+    pub version_before: ReScriptVersionBracket,
+    pub version_after: ReScriptVersionBracket,
+    /// Config format change
+    pub config_before: ReScriptConfigFormat,
+    pub config_after: ReScriptConfigFormat,
 }
 
 /// Datalog fact for signature detection.

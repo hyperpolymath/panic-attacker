@@ -26,6 +26,8 @@ mod assemblyline;
 mod notify;
 mod types;
 
+extern crate walkdir;
+
 use crate::a2ml::{Manifest, ReportBundleKind};
 use crate::abduct::{
     AbductConfig, DependencyScope, ExecutionCommand as AbductExecutionCommand, TimeMode,
@@ -537,6 +539,52 @@ enum Commands {
         manifest: Option<PathBuf>,
     },
 
+    /// Take a ReScript migration snapshot (assail + migration metrics)
+    MigrationSnapshot {
+        /// Target ReScript project directory
+        #[arg(value_name = "TARGET")]
+        target: PathBuf,
+
+        /// Label for this snapshot (e.g. "before", "after", "v12-trial")
+        #[arg(long, value_name = "LABEL")]
+        label: String,
+
+        /// Measure build time (runs `rescript build`)
+        #[arg(long, default_value_t = false)]
+        build_time: bool,
+
+        /// Measure bundle size (scans output directory)
+        #[arg(long, default_value_t = false)]
+        bundle_size: bool,
+
+        /// Store snapshot as VeriSimDB hexad
+        #[arg(long, default_value_t = false)]
+        store: bool,
+
+        /// Output snapshot to file
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+
+    /// Compare two migration snapshots and produce a diff report
+    MigrationDiff {
+        /// Before snapshot JSON file
+        #[arg(value_name = "BEFORE")]
+        before: PathBuf,
+
+        /// After snapshot JSON file
+        #[arg(value_name = "AFTER")]
+        after: PathBuf,
+
+        /// Output diff report to file
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+
+        /// Output format (markdown or json)
+        #[arg(long, default_value = "markdown")]
+        format: MigrationDiffFormatArg,
+    },
+
     /// Notify: generate annotated findings summary from an assemblyline report
     Notify {
         /// Assemblyline JSON report file
@@ -707,6 +755,12 @@ enum A2mlReportKindArg {
     Abduct,
     Adjudicate,
     Axial,
+}
+
+#[derive(Debug, Clone, Copy, clap::ValueEnum)]
+enum MigrationDiffFormatArg {
+    Markdown,
+    Json,
 }
 
 impl From<A2mlReportKindArg> for ReportBundleKind {
@@ -1574,6 +1628,155 @@ fn main() -> Result<()> {
                 for url in &created {
                     qprintln!(cli.quiet, "  {}", url);
                 }
+            }
+
+            return Ok(());
+        }
+
+        Commands::MigrationSnapshot {
+            target,
+            label,
+            build_time,
+            bundle_size,
+            store,
+            output,
+        } => {
+            qprintln!(
+                cli.quiet,
+                "Taking migration snapshot '{}' of: {}",
+                label,
+                target.display()
+            );
+
+            // Run assail analysis
+            let assail_report = if cli.quiet {
+                assail::analyze(&target)?
+            } else {
+                assail::analyze_verbose(&target)?
+            };
+
+            // Check that migration_metrics were populated
+            let mut metrics = assail_report
+                .migration_metrics
+                .clone()
+                .unwrap_or_else(|| {
+                    eprintln!("warning: target does not appear to be a ReScript project");
+                    // Return empty metrics as fallback
+                    types::MigrationMetrics {
+                        deprecated_api_count: 0,
+                        modern_api_count: 0,
+                        api_migration_ratio: 1.0,
+                        health_score: 1.0,
+                        config_format: types::ReScriptConfigFormat::None,
+                        version_bracket: types::ReScriptVersionBracket::V12Current,
+                        build_time_ms: None,
+                        bundle_size_bytes: None,
+                        file_count: 0,
+                        rescript_lines: 0,
+                        deprecated_patterns: Vec::new(),
+                        jsx_version: None,
+                        uncurried: false,
+                        module_format: None,
+                    }
+                });
+
+            // Optionally measure build time
+            if build_time {
+                qprintln!(cli.quiet, "Measuring build time...");
+                let start = std::time::Instant::now();
+                let build_result = std::process::Command::new("npx")
+                    .args(["rescript", "build"])
+                    .current_dir(&target)
+                    .output();
+                let elapsed = start.elapsed();
+                match build_result {
+                    Ok(out) if out.status.success() => {
+                        metrics.build_time_ms = Some(elapsed.as_millis() as u64);
+                        qprintln!(cli.quiet, "Build time: {}ms", elapsed.as_millis());
+                    }
+                    Ok(out) => {
+                        eprintln!(
+                            "warning: rescript build failed (exit {})",
+                            out.status.code().unwrap_or(-1)
+                        );
+                    }
+                    Err(e) => {
+                        eprintln!("warning: could not run rescript build: {}", e);
+                    }
+                }
+            }
+
+            // Optionally measure bundle size
+            if bundle_size {
+                qprintln!(cli.quiet, "Measuring bundle size...");
+                let lib_dir = target.join("lib");
+                if lib_dir.exists() {
+                    let mut total: u64 = 0;
+                    for entry in walkdir::WalkDir::new(&lib_dir)
+                        .into_iter()
+                        .filter_map(|e| e.ok())
+                    {
+                        if entry.file_type().is_file() {
+                            if let Ok(meta) = entry.metadata() {
+                                total += meta.len();
+                            }
+                        }
+                    }
+                    metrics.bundle_size_bytes = Some(total);
+                    qprintln!(cli.quiet, "Bundle size: {} bytes", total);
+                } else {
+                    eprintln!("warning: lib/ directory not found (run build first?)");
+                }
+            }
+
+            let snapshot = types::MigrationSnapshot {
+                label: label.clone(),
+                timestamp: chrono::Utc::now().to_rfc3339(),
+                target_path: target.display().to_string(),
+                assail_report,
+                migration_metrics: metrics,
+            };
+
+            let json = serde_json::to_string_pretty(&snapshot)?;
+
+            if let Some(out_path) = output {
+                fs::write(&out_path, &json)?;
+                qprintln!(cli.quiet, "Snapshot written to: {}", out_path.display());
+            } else {
+                println!("{}", json);
+            }
+
+            if store {
+                qprintln!(cli.quiet, "VeriSimDB storage for snapshots: planned");
+            }
+
+            return Ok(());
+        }
+
+        Commands::MigrationDiff {
+            before,
+            after,
+            output,
+            format,
+        } => {
+            let before_snapshot = report::migration::load_snapshot(&before)?;
+            let after_snapshot = report::migration::load_snapshot(&after)?;
+            let diff = report::migration::compute_diff(&before_snapshot, &after_snapshot);
+
+            let content = match format {
+                MigrationDiffFormatArg::Markdown => {
+                    report::migration::format_diff_markdown(&diff)
+                }
+                MigrationDiffFormatArg::Json => {
+                    serde_json::to_string_pretty(&diff)?
+                }
+            };
+
+            if let Some(out_path) = output {
+                fs::write(&out_path, &content)?;
+                qprintln!(cli.quiet, "Migration diff written to: {}", out_path.display());
+            } else {
+                println!("{}", content);
             }
 
             return Ok(());
